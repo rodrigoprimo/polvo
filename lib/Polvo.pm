@@ -1,5 +1,9 @@
 package Polvo;
 
+our $VERSION = '0.1';
+
+BEGIN { unshift @INC, '.' }
+
 use XML::Simple;
 
 sub new {
@@ -17,20 +21,21 @@ sub new {
 
 sub loadConfig {
     my $self = shift;
-    my $configFile = $self->{CONFIG};
+    my $configFile = $self->{CONFIGFILE};
 
     -f $configFile
 	or die "$configFile not found";
 
-    my $config = XML::Simple->XMLin($configFile)
+    my $xs = XML::Simple->new();
+
+    my $config = $xs->XMLin($configFile)
 	or die "$configFile not proper xml";
 
-    $config->{polvoConfig} && 
-	$config->{polvoConfig}{targetDir} && 
-	$config->{polvoConfig}{sourceDir} && or
+    $config->{targetDir} && 
+	$config->{sourceDir} or
 	die "$configFile doesn't comply with polvo standards";
     
-    $self->{CONFIG} = $config->{polvoConfig};
+    $self->{CONFIG} = $config;
 
     $self->{REPOSITORY} = $self->{CONFIG}{sourceDir};
     $self->{TARGET} = $self->{CONFIG}{targetDir};
@@ -62,12 +67,9 @@ sub _copyDir {
     my $source = shift;
     my $target = shift;
 
-    local %ENV;
-    chdir $source;
-
     my (@items, $item);
 
-    opendir DIR, '.'
+    opendir DIR, $source
 	or die $!;
     push @items, $item
 	while $item = readdir DIR;
@@ -76,12 +78,12 @@ sub _copyDir {
     foreach $item (@items) {
 	$item =~ /^(\.+|.*~|\#.*|CVS)$/ and next;
 
-	if (-f $item) {
+	if (-f "$source/$item") {
 	    system("cp $source/$item $target/$item");
-	} elsif (-d $item) {
+	} elsif (-d "$source/$item") {
 	    -d "$target/$item"
 		or mkdir "$target/$item", 02775;
-	    $self->_copyDir($item, "$target/$item");
+	    $self->_copyDir("$source/$item", "$target/$item");
 	}
     }
 }
