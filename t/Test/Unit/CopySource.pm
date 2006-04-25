@@ -49,7 +49,7 @@ sub test_copy {
 }
 
 sub tear_down {
-    #system("rm -rf /tmp/polvo_test");
+    system("rm -rf /tmp/polvo_test");
 }
 
 1;

@@ -1,10 +1,38 @@
 package Polvo;
 
+use strict;
+
 our $VERSION = '0.1';
 
-BEGIN { unshift @INC, '.' }
-
 use XML::Simple;
+
+=head1 NAME
+
+Polvo - Perl extension for installing modules over repositories
+
+=head1 SYNOPSIS
+
+  use Polvo;
+
+  my $polvo = Polvo->new('Config' => 'myconfig.xml');
+  $polvo->copyDir();
+
+
+=head1 DESCRIPTION
+
+Polvo is designed to take a module (that consists in some new files, patches 
+and database queries) and installs is over a repository.
+
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new (Config => $configFile)
+
+Config is a xml file. TODO: documentation
+
+=back
+=cut
 
 sub new {
     my $package = shift;
@@ -15,9 +43,20 @@ sub new {
     }, $package;
 
     $self->loadConfig($p{'Config'});
+    $self->_checkPatches();
 
     return $self;
 }
+
+=head1 METHODS
+
+=over 4
+
+=item loadConfig()
+
+Loads the config file, called by constructor.
+
+=cut
 
 sub loadConfig {
     my $self = shift;
@@ -50,6 +89,13 @@ sub loadConfig {
 
     1;
 }
+
+=pod
+=item copySource()
+
+Looks for a src/ dir in source dir and copies its contents over target dir.
+
+=cut
 
 sub copySource {
     my $self = shift;
@@ -88,6 +134,137 @@ sub _copyDir {
     }
 }
 
+=pod
+=item applyPatches()
 
+Looks for a patch/ dir in source dir, finds every .patch file and apply it to target dir
+with patch -p0 command. All patches are applied only once. Polvo keeps a .polvo-patches
+file containing names of all patches already applied.
+
+=cut
+
+sub applyPatches {
+    my $self = shift;
+
+    my $source = $self->{REPOSITORY}.'/patch';
+    
+    -d $source
+	or return 1;
+
+    my @patches;
+
+    open FIND, "find $source -name '*.patch' |";
+    while (my $patch = <FIND>) {
+	chomp $patch;
+	push @patches, $patch;
+    }
+    close FIND;
+
+    foreach my $patch (sort @patches) {
+	$self->applyPatch($patch);
+    }
+
+}
+
+sub _checkPatches {
+    my $self = shift;
+    my $target = $self->{TARGET};
+
+    $self->{PATCHES} = {};
+
+    -f "$target/.polvo-patches"
+	or return 1;
+
+    open ARQ, "$target/.polvo-patches"
+	or die "Can't open patch list at $target/.polvo-patches";
+
+    while (my $patch = <ARQ>) {
+	chomp $patch;
+	$self->{PATCHES}{$patch} = 1;
+    }
+    close ARQ;
+
+    1;
+}
+
+sub _writePatch {
+    my $self = shift;
+    my $patchFile = shift;
+
+    my $target = $self->{TARGET};
+
+    open ARQ, ">>$target/.polvo-patches"
+	or die "Can't write $target/.polvo-patches";
+    
+    print ARQ $patchFile, "\n";
+
+    close ARQ;
+
+    1;
+}
+
+# get absolute path to patch and return path relative to target
+sub _patchName {
+    my $self = shift;
+    my $patch = shift;
+
+    my $rep = $self->{REPOSITORY} . '/patch';
+    
+    $patch =~ s|^$rep/||;
+    return $patch;
+}
+
+=pod
+
+=item applyPatch($patchFile)
+
+Takes the path of a patch file and applies it to target dir if not applied before.
+
+=cut
+
+sub applyPatch {
+    my $self = shift;
+    my $patchFile = shift;
+
+    my $patchName = $self->_patchName($patchFile);
+
+    defined $self->{PATCHES}{$patchName} and return 1; #already applied;    
+
+    my $oldDir = $ENV{'PWD'};
+    chdir $self->{TARGET};
+    system("patch -p0 < $patchFile");
+    chdir $oldDir;
+
+    $self->{PATCHES}{$patchName} = 1;
+    $self->_writePatch($patchName);
+    1;
+}
+
+
+=head1 SEE ALSO
+
+Mention other useful documentation such as the documentation of
+related modules or operating system documentation (such as man pages
+in UNIX), or any relevant external documentation such as RFCs or
+standards.
+
+If you have a mailing list set up for your module, mention it here.
+
+If you have a web site set up for your module, mention it here.
+
+=head1 AUTHOR
+
+Fernando Freire, E<lt>nano@E<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2006 by Fernando Freire
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.7 or,
+at your option, any later version of Perl 5 you may have available.
+
+
+=cut
 
 1; # make perl happy :-)

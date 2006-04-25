@@ -1,8 +1,10 @@
-use Test::Unit::HarnessUnit;
+BEGIN {
+    our $testPackage = 'Test::Unit::TestRunner';
+    $testPackage = 'Test::Unit::HarnessUnit';
+    eval "use $testPackage;";
+}
 
-#BEGIN { push @INC, 't/lib'; }
+use Polvo;
 
-use Test::Unit::CopySource;
-
-my $r = Test::Unit::HarnessUnit->new();
-$r->start('Test::Unit::CopySource');
+$testPackage->new()->start('Test::Unit::Patch');
+$testPackage->new()->start('Test::Unit::CopySource');
