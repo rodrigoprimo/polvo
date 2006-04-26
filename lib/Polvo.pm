@@ -102,7 +102,7 @@ sub loadConfig {
 
 	$pass = '-p'.$pass if $pass;
 
-	$self->{MYSQLCMD} = "mysql -u $user $pass $db";
+	$self->{MYSQLCMD} = "mysql -f -u $user $pass $db";
 	open CONN, "|".$self->{MYSQLCMD} or die "Can't connect to database $db";
 	close CONN;
     }
