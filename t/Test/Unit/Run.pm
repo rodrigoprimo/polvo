@@ -103,7 +103,10 @@ sub test_run {
 }
 
 sub tear_down {
+    my $self = shift;
+
     system("rm -rf /tmp/polvo_test");
+    $self->{DBH}->do("drop database polvo_test");
 }
 
 1;
