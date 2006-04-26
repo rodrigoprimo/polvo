@@ -73,11 +73,12 @@ sub loadConfig {
     $config->{targetDir} && 
 	$config->{sourceDir} or
 	die "$configFile doesn't comply with polvo standards";
-    
+
     $self->{CONFIG} = $config;
 
     $self->{REPOSITORY} = $self->{CONFIG}{sourceDir};
     $self->{TARGET} = $self->{CONFIG}{targetDir};
+
 
     -d $self->{REPOSITORY} or
 	die $self->{REPOSITORY}." is not a directory";    
@@ -87,6 +88,25 @@ sub loadConfig {
     $self->{REPOSITORY} =~ s|/?$||;
     $self->{TARGET} =~ s|/?$||;
 
+    if ($config->{connection}) {
+
+	$config->{connection}{database} &&
+	    $config->{connection}{user}
+	or die "$configFile doesn't comply with polvo standards";
+	
+	my $db = $config->{connection}{database};
+	my $user = $config->{connection}{user};
+	my $pass = $config->{connection}{password} || '';
+
+	ref $pass and $pass = '';
+
+	$pass = '-p'.$pass if $pass;
+
+	$self->{MYSQLCMD} = "mysql -u $user $pass $db";
+	open CONN, "|".$self->{MYSQLCMD} or die "Can't connect to database $db";
+	close CONN;
+    }
+    
     1;
 }
 
@@ -102,6 +122,7 @@ sub run {
 
     $self->copySource();
     $self->applyPatches();
+    $self->upgradeDb();
     1;
 }
 
@@ -255,6 +276,63 @@ sub applyPatch {
     1;
 }
 
+=pod
+
+=item upgradeDb()
+
+If there's a database connection configured in config file, looks for all .sql files in db/ directory
+inside repository and run the queries inside them. Different from patch system, sql files can be incremented
+(always at end, never editing mid of file) and only new queries will be run.
+
+=cut
+
+sub upgradeDb() {
+    my $self = shift;
+
+    my $target = $self->{TARGET};
+    my $source = $self->{REPOSITORY} . '/db';
+    my $cmd = $self->{MYSQLCMD};
+
+    -d $source && defined $cmd
+	or return 1;
+
+    my @sqls;
+
+    open FIND, "find $source -name '*.sql' |";
+    while (my $sql = <FIND>) {
+	chomp $sql;
+	push @sqls, $sql;
+    }
+    close FIND;
+
+    foreach my $sql (sort @sqls) {
+
+	my $sqlOld = $sql; 
+	$sqlOld =~ s|^$source|$target/.polvo-db|;
+
+	if (-f $sqlOld) {
+	    open DIFF, "diff -u $sqlOld $sql |";
+	    my @lines;
+	    while (my $line = <DIFF>) {
+		chomp $line;
+		push @lines, $1 if $line =~ /^\+([^\+].*)/;
+	    }
+	    close DIFF;
+	    open DB, "|$cmd";
+	    print DB join('', @lines);
+	    close DB;
+	} else {
+	    system("$cmd < $sql");
+	}
+    }
+
+    system("rm -rf $target/.polvo-db");
+    system("cp -r $source $target/.polvo-db");
+}
+
+
+=pod
+=back
 
 =head1 SEE ALSO
 

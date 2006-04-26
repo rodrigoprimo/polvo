@@ -54,14 +54,16 @@ sub test_upgradeDb {
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->upgradeDb();
 
-    my $sth = $self->{DHB}->prepare("show tables like 'polvo_test%'");
+    my $dbh = DBI->connect('dbi:mysql:mysql:localhost', 'root', $dbRootPass) or die 'unable to connect to mysql';
+
+    my $sth = $self->{DBH}->prepare("show tables like 'polvo_test%'");
     $sth->execute();
     $self->assert($sth->rows == 2, 'did not create tables');
     
-    my ($result) = $self->{DHB}->selectrow_array("select count(*) from polvo_test where name = 'name'");
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test where name = 'name'");
     $self->assert($result == 1, 'did not insert value into polvo_test');
 
-    my ($result) = $self->{DHB}->selectrow_array("select count(*) from polvo_test2 where nome = 'nome'");
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test2 where nome = 'nome'");
     $self->assert($result == 1, 'did not insert value into polvo_test2');
     
 }
@@ -72,17 +74,17 @@ sub test_incremental_upgradeDb {
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->upgradeDb();
 
-    open ARQ, ">>upgrade.sql";
+    open ARQ, ">>/tmp/polvo_test/repository/db/upgrade.sql";
     print ARQ "insert into polvo_test values('asa');";
     close ARQ;
 
     $polvo->upgradeDb();
     
-    my ($result) = $self->{DHB}->selectrow_array("select count(*) from polvo_test where name = 'name'");
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test where name = 'name'");
     $self->assert($result == 1, 'inserted twice into polvo_test');
 
-    my ($result) = $self->{DHB}->selectrow_array("select count(*) from polvo_test where name = 'asa'");
-    $self->assert($result == 1, 'inserted asa into polvo_test');
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test where name = 'asa'");
+    $self->assert($result == 1, 'did not insert asa into polvo_test');
     
 }
 
