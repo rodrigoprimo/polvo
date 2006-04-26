@@ -91,6 +91,21 @@ sub loadConfig {
 }
 
 =pod
+=item run()
+
+Runs everything.
+
+=cut
+
+sub run {
+    my $self = shift;
+
+    $self->copySource();
+    $self->applyPatches();
+    1;
+}
+
+=pod
 =item copySource()
 
 Looks for a src/ dir in source dir and copies its contents over target dir.
