@@ -5,6 +5,7 @@ use strict;
 our $VERSION = '0.1';
 
 use XML::Simple;
+use MD5;
 
 =head1 NAME
 
@@ -332,6 +333,54 @@ sub upgradeDb() {
     system("cp -r $source $target/.polvo-db");
 }
 
+=pod
+=item runPhp()
+
+Looks for a php/ dir in source dir, finds every .php file and runs it relative to target.
+All files are run only once.
+
+=cut
+
+sub runPhp() {
+    my $self = shift;
+
+    my $target = $self->{TARGET};
+    my $source = $self->{REPOSITORY} . '/php';
+
+    -d $source
+	or return 1;
+
+    my $cmd = $self->{CONFIG}{phpcmd} || 'php-cgi';
+
+    my @phps;
+
+    open FIND, "find $source -name '*.php' |";
+    while (my $php = <FIND>) {
+	chomp $php;
+	push @phps, $php
+	    unless $php =~ m/(^|\/)\#[^\/]+/ or $php =~ /~$/;
+    }
+    close FIND;
+
+    foreach my $php (@phps) {
+	my $phpOld = $php; 
+	$phpOld =~ s|^$source|$target/.polvo-php|;
+
+	if (!-f $phpOld) {
+	    my $phpNew;
+	    while (!$phpNew || -f "$target/$phpNew") {
+		$phpNew = MD5->hexhash(rand()) . '.php';
+	    }
+	    chdir $target;
+	    system("cp $php $phpNew");
+	    system("$cmd $phpNew");
+	}
+    }
+
+    system("rm -rf $target/.polvo-php");
+    system("cp -r $source $target/.polvo-php");
+    
+}
 
 =pod
 =back

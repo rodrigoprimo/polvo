@@ -20,13 +20,12 @@ sub set_up {
     chdir 'repository/php';
 
     open ARQ, ">test.php";
-    print ARQ qq|
-	<?php //;
+    print ARQ '<?php
     $fp = fopen("/tmp/polvo_test/php_works","w");
     fputs($fp, "yeah");
     fclose($fp);
     ?>
-    |;
+    ';
     close ARQ;
 
     chdir '/tmp/polvo_test';
@@ -75,7 +74,7 @@ sub test_php_context {
     
     system("mv /tmp/polvo_test/repository/php/test.php /tmp/polvo_test/target/included.php");
 
-    open ARQ, ">test.php";
+    open ARQ, ">/tmp/polvo_test/repository/php/test.php";
     print ARQ "<?php require('included.php'); ?>";
     close ARQ;
 
@@ -105,7 +104,7 @@ sub test_php_refuse_emacs_trash {
 
     chdir '/tmp/polvo_test/repository/php';
     system("mv test.php test.php~");
-    system("cp test.php~ #test.php");
+    system('cp test.php~ \#test.php');
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->runPhp();
