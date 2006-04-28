@@ -6,6 +6,7 @@ BEGIN {
 
 use Polvo;
 
+$testPackage->new()->start('Test::Unit::PhpScript');
 $testPackage->new()->start('Test::Unit::UpgradeDb');
 $testPackage->new()->start('Test::Unit::Patch');
 $testPackage->new()->start('Test::Unit::CopySource');
