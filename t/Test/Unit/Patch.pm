@@ -100,6 +100,38 @@ sub test_incremental_patch {
     $self->assert(length($diff) == 0, "files are not equal");
 }
 
+sub test_refuse_emacs_trash {
+    my $self = shift;
+
+    $self->assert(!-f "/tmp/polvo_test/target/.polvo-patches", "already patched!");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+
+    system("mv /tmp/polvo_test/repository/patch/test.patch /tmp/polvo_test/repository/patch/test.patch~");
+    $polvo->applyPatches();
+
+    my $diff1 = `diff /tmp/polvo_test/target/dir1/file1 /tmp/polvo_test/target_new/dir1/file1`;
+    my $diff2 = `diff /tmp/polvo_test/target/file2 /tmp/polvo_test/target_new/file2`;
+
+    $self->assert(length($diff1) > 0, "shouldn't consider emacs backup file as patch");
+    $self->assert(length($diff2) > 0, "shouldn't consider emacs backup file as patch");
+
+    my $appliedPatch = `grep test.patch /tmp/polvo_test/target/.polvo-patches`;
+    $self->assert(length($appliedPatch) == 0, "emacs backup file not applied but recorded");
+
+    system("mv /tmp/polvo_test/repository/patch/test.patch~ /tmp/polvo_test/repository/patch/#test.patch");
+    $polvo->applyPatches();
+
+    my $diff1 = `diff /tmp/polvo_test/target/dir1/file1 /tmp/polvo_test/target_new/dir1/file1`;
+    my $diff2 = `diff /tmp/polvo_test/target/file2 /tmp/polvo_test/target_new/file2`;
+
+    $self->assert(length($diff1) > 0, "shouldn't consider emacs backup file as patch");
+    $self->assert(length($diff2) > 0, "shouldn't consider emacs backup file as patch");
+
+    my $appliedPatch = `grep test.patch /tmp/polvo_test/target/.polvo-patches`;
+    $self->assert(length($appliedPatch) == 0, "emacs backup file not applied but recorded");
+}
+
 sub tear_down {
     system("rm -rf /tmp/polvo_test");
 }

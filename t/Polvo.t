@@ -7,6 +7,6 @@ BEGIN {
 use Polvo;
 
 $testPackage->new()->start('Test::Unit::UpgradeDb');
-$testPackage->new()->start('Test::Unit::Run');
 $testPackage->new()->start('Test::Unit::Patch');
 $testPackage->new()->start('Test::Unit::CopySource');
+$testPackage->new()->start('Test::Unit::Run');

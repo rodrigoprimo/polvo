@@ -192,7 +192,8 @@ sub applyPatches {
     open FIND, "find $source -name '*.patch' |";
     while (my $patch = <FIND>) {
 	chomp $patch;
-	push @patches, $patch;
+	push @patches, $patch
+	    unless $patch =~ m/(^|\/)\#[^\/]+/ or $patch =~ /~$/;
     }
     close FIND;
 
@@ -301,7 +302,8 @@ sub upgradeDb() {
     open FIND, "find $source -name '*.sql' |";
     while (my $sql = <FIND>) {
 	chomp $sql;
-	push @sqls, $sql;
+	push @sqls, $sql
+	    unless $sql =~ m/(^|\/)\#[^\/]+/ or $sql =~ /~$/;
     }
     close FIND;
 

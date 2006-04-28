@@ -48,6 +48,20 @@ sub test_copy {
     $self->assert(length($diff2) == 0, "file are not equal");
 }
 
+sub test_refuse_emacs_trash {
+    my $self = shift;
+
+    system("touch /tmp/polvo_test/repository/src/file2~");
+    system("touch /tmp/polvo_test/repository/src/#file2");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->copySource;
+
+    $self->assert(!-f '/tmp/polvo_test/target/file2~', "file2~ shouldn't be copied (emacs backup file)");
+    $self->assert(!-f '/tmp/polvo_test/target/#file2', "#file2 shouldn't be copied (emacs backup file)");
+
+}
+
 sub tear_down {
     system("rm -rf /tmp/polvo_test");
 }
