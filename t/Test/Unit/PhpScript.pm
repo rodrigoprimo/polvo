@@ -38,7 +38,6 @@ sub set_up {
 }
 
 sub test_php_run {
-    
     my $self = shift;
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
@@ -99,6 +98,19 @@ sub test_php_preserve_target {
     my $content = `grep preserved /tmp/polvo_test/target/test.php`;
 
     $self->assert(length($content) > 0, "environment not preserved");
+}
+
+sub test_php_refuse_emacs_trash {
+    my $self = shift;
+
+    chdir '/tmp/polvo_test/repository/php';
+    system("mv test.php test.php~");
+    system("cp test.php~ #test.php");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->runPhp();
+
+    $self->assert(!-f '/tmp/polvo_test/php_works', "shouldn't run emacs backup file");
 }
 
 sub tear_down {
