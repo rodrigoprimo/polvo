@@ -124,6 +124,8 @@ sub run {
     $self->copySource();
     $self->applyPatches();
     $self->upgradeDb();
+    $self->runPhp();
+
     1;
 }
 

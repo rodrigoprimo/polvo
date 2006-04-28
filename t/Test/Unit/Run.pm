@@ -26,6 +26,7 @@ sub set_up {
     mkdir 'repository/patch';
     mkdir 'repository/src';
     mkdir 'repository/db';
+    mkdir 'repository/php';
 
     chdir 'repository/db';
     open ARQ, ">upgrade.sql";
@@ -50,8 +51,19 @@ insert into polvo_test2 values('nome');";
 
     system("diff -Naur . ../../target_new > ../patch/test.patch");
 
-    chdir '../..';
+    chdir '/tmp/polvo_test/repository/php';
 
+    open ARQ, ">test.php";
+    print ARQ '<?php
+    $fp = fopen("/tmp/polvo_test/php_works","w");
+    fputs($fp, "yeah");
+    fclose($fp);
+    ?>
+    ';
+    close ARQ;
+
+    chdir '/tmp/polvo_test';
+    
     open ARQ, ">test.conf";
     print ARQ "<polvoConfig>
   <targetDir>/tmp/polvo_test/target</targetDir>
@@ -99,7 +111,8 @@ sub test_run {
 
     my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test2 where nome = 'nome'");
     $self->assert($result == 1, 'did not insert value into polvo_test2');
-    
+
+    $self->assert(-f '/tmp/polvo_test/php_works', "didn't run test.php");
 }
 
 sub tear_down {
