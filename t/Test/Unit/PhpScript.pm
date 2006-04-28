@@ -57,7 +57,49 @@ sub test_php_run_subdir {
     $polvo->runPhp();
 
     $self->assert(-f '/tmp/polvo_test/php_works', "didn't run test.php in subdir");    
-}    
+}
+
+sub test_php_run_only_once {
+    my $self = shift;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->runPhp();
+
+    unlink("/tmp/polvo_test/php_works");
+    $polvo->runPhp();
+
+    $self->assert(!-f '/tmp/polvo_test/php_works', "test.php should be run only once");
+}
+
+sub test_php_context {
+    my $self = shift;
+    
+    system("mv /tmp/polvo_test/repository/php/test.php /tmp/polvo_test/target/included.php");
+
+    open ARQ, ">test.php";
+    print ARQ "<?php require('included.php'); ?>";
+    close ARQ;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->runPhp();
+
+    $self->assert(-f '/tmp/polvo_test/php_works', "php script was not run in right context");
+}
+
+sub test_php_preserve_target {
+    my $self = shift;
+
+    open ARQ, ">/tmp/polvo_test/target/test.php";
+    print ARQ "I'm preserved";
+    close ARQ;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->runPhp();
+
+    my $content = `grep preserved /tmp/polvo_test/target/test.php`;
+
+    $self->assert(length($content) > 0, "environment not preserved");
+}
 
 sub tear_down {
     system("rm -rf /tmp/polvo_test");
