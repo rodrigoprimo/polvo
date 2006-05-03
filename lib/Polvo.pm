@@ -364,7 +364,7 @@ sub runPhp() {
     }
     close FIND;
 
-    foreach my $php (@phps) {
+    foreach my $php (sort @phps) {
 	my $phpOld = $php; 
 	$phpOld =~ s|^$source|$target/.polvo-php|;
 
