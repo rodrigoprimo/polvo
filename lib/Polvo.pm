@@ -30,9 +30,8 @@ and database queries) and installs is over a repository.
 
 =item new (Config => $configFile)
 
-Config is a xml file. TODO: documentation
+Config is a xml file. 
 
-=back
 =cut
 
 sub new {
@@ -49,9 +48,10 @@ sub new {
     return $self;
 }
 
-=head1 METHODS
+=pod
+=back
 
-=over 4
+=head1 METHODS
 
 =item loadConfig()
 
@@ -107,11 +107,12 @@ sub loadConfig {
 	open CONN, "|".$self->{MYSQLCMD} or die "Can't connect to database $db";
 	close CONN;
     }
-    
+
     1;
 }
 
 =pod
+
 =item run()
 
 Runs everything.
@@ -385,7 +386,21 @@ sub runPhp() {
 }
 
 =pod
-=back
+=item reset()
+
+Checks if there's a section named resetCmd in config file, if so runs it.
+
+=cut
+
+sub reset() {
+    my $self = shift;
+
+    my $resetCmd = $self->{CONFIG}{resetCmd} or return 1;
+
+    system($resetCmd);
+}
+
+=pod
 
 =head1 SEE ALSO
 
