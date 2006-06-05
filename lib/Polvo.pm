@@ -201,6 +201,7 @@ sub applyPatches {
     }
     close FIND;
 
+    # TODO: sort deve considerar apenas nome do arquivo, e nao do diretorio
     foreach my $patch (sort @patches) {
 	$self->applyPatch($patch);
     }
