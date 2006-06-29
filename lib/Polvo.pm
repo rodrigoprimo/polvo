@@ -104,7 +104,12 @@ sub loadConfig {
 	$pass = '-p'.$pass if $pass;
 
 	$self->{MYSQLCMD} = "mysql -f -u $user $pass $db";
-	open CONN, "|".$self->{MYSQLCMD} or die "Can't connect to database $db";
+    } elsif ($config->{mysqlcmd}) {
+	$self->{MYSQLCMD} = $config->{mysqlcmd};
+    }
+
+    if (defined $self->{MYSQLCMD}) {
+	open CONN, "|".$self->{MYSQLCMD} or die "Can't connect to database";
 	close CONN;
     }
 
