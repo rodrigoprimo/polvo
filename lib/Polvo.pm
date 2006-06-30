@@ -206,20 +206,16 @@ sub applyPatches {
     }
     close FIND;
 
-    my $byFileName = sub {
-	my $_a = $a;
-	my $_b = $b;
-
-	$_a =~ s|^.+/||;
-	$_b =~ s|^.+/||;
-
-	return $_a cmp $_b;
-    };
-
-    foreach my $patch (sort $byFileName @patches) {
+    foreach my $patch (sort { $self->_stripDir($a) cmp $self->_stripDir($b) } @patches) {
 	$self->applyPatch($patch);
     }
+}
 
+sub _stripDir {
+    my $self = shift;
+    my $file = shift;
+    $file =~ s|^.+/||;
+    return $file;
 }
 
 sub _checkPatches {

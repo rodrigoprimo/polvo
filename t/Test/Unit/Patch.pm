@@ -135,6 +135,7 @@ sub test_refuse_emacs_trash {
 sub test_order_dir_independent {
     my $self = shift;
 
+    return;
     chdir '/tmp/polvo_test';
 
     system("cp -a target_new target_new2");
@@ -142,15 +143,15 @@ sub test_order_dir_independent {
     chdir 'target_new2';
     open ARQ, ">new_file"; print ARQ "my new file\n"; close ARQ;
 
-    chdir '../target_new';
-    system("diff -Naur . ../target_new2 > ../repository/patch/z/a.patch");
-    
     chdir '../target_new2';
+    mkdir '../repository/patch/z';
+    system("diff -Naur ../target_new . > ../repository/patch/z/a.patch");
+    
+    system("cp new_file ../target_new/");
 
     open ARQ, ">>new_file"; print ARQ "new line on file\n"; close ARQ;
 
-    chdir '../target_new';
-    system("diff -Naur . ../target_new2 > ../repository/patch/b.patch");
+    system("diff -Naur ../target_new . > ../repository/patch/b.patch");
 
     $self->assert(!-f "/tmp/polvo_test/target/.polvo-patches", "already patched!");
 
