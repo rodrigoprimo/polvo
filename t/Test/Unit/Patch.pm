@@ -30,9 +30,9 @@ sub set_up {
     open ARQ, ">target_new/file2"; print ARQ "changed\n"; close ARQ;
     open ARQ, ">>target_new/dir1/file1"; print ARQ "asfasasfasdfasf\n"; close ARQ;
 
-    chdir 'target';
+    chdir 'target_new';
 
-    system("diff -Naur . ../target_new > ../repository/patch/test.patch");
+    system("diff -Naur ../target . > ../repository/patch/test.patch");
 
     chdir '../';
 
@@ -183,6 +183,29 @@ sub test_order_dir_independent {
 
     $self->assert(length($diff) > 0, "didn't run second incremental patch!");    
 
+}
+
+sub test_modified_patch {
+    my $self = shift;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->applyPatches();
+
+    chdir '/tmp/polvo_test/target_new';
+    system("cp file2 /tmp/file2.bk")
+    open ARQ, ">>file2"; print ARQ "more changes\n"; close ARQ;
+    system("diff -Naur ../target . > ../repository/patch/test2.patch");
+
+    $polvo->applyPatches();
+
+    chdir '/tmp/polvo_test/target_new';
+    system("cp /tmp/file2.bk file2")
+    open ARQ, ">>file2"; print ARQ "more changes in a different way\n"; close ARQ;
+    system("diff -Naur /tmp/file2.bk . > ../repository/patch/test2.patch");    
+
+    my $diff = `diff /tmp/polvo_test/target/file2 /tmp/polvo_test/target_new/file2`;
+    $self->assert(length($diff) == 0, "files are not equal");
+    
 }
 
 sub tear_down {
