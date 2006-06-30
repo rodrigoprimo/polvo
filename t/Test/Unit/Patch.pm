@@ -44,7 +44,7 @@ sub set_up {
 sub test_apply_patch {
     my $self = shift;
 
-    $self->assert(!-f "/tmp/polvo_test/target/.polvo-patches", "already patched!");
+    $self->assert(!-d "/tmp/polvo_test/target/.polvo-patches", "already patched!");
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->applyPatches();
@@ -54,10 +54,6 @@ sub test_apply_patch {
     $self->assert(length($diff1) == 0, "files are not equal");
     $self->assert(length($diff2) == 0, "files are not equal");
 
-    $self->assert(-f "/tmp/polvo_test/target/.polvo-patches", "not patched!");
-
-    my $appliedPatch = `grep test.patch /tmp/polvo_test/target/.polvo-patches`;
-    $self->assert(length($appliedPatch) > 0, "patch not recorded");
 }
 
 sub test_reapply_patch {
@@ -65,14 +61,14 @@ sub test_reapply_patch {
     my $self = shift;
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
-    $polvo->applyPatches();
+    $polvo->applyPatches("-f");
     
     my @stat1_old = stat('/tmp/polvo_test/target/dir1/file1'); 
     my @stat2_old = stat('/tmp/polvo_test/target/file2'); 
 
     sleep(2);
 
-    $polvo->applyPatches();
+    $polvo->applyPatches("-f");
 
     my @stat1 = stat('/tmp/polvo_test/target/dir1/file1'); 
     my @stat2 = stat('/tmp/polvo_test/target/file2'); 
@@ -98,6 +94,29 @@ sub test_incremental_patch {
 
     my $diff = `diff /tmp/polvo_test/target/file2 /tmp/polvo_test/target_new2/file2`;
     $self->assert(length($diff) == 0, "files are not equal");
+}
+
+sub test_undo_incremental_patch {
+
+    my $self = shift;
+
+    system("cp -a target_new target_new2");
+    system("cp -a target target_backup");
+    open ARQ, ">>target_new2/file2"; print ARQ "more\n"; close ARQ;
+
+    chdir 'target_new';
+
+    system("diff -Naur . ../target_new2 > ../repository/patch/test2.patch");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+
+    $polvo->applyPatches();
+    my $diff = `diff -Naur /tmp/polvo_test/target /tmp/polvo_test/target_backup`;
+    $self->assert(length($diff) > 0, "target unchanged after patch application");
+
+    $polvo->unapplyPatches();
+    my $diff = `diff -Naur /tmp/polvo_test/target /tmp/polvo_test/target_backup`;
+    $self->assert(length($diff) == 0, "target changed after patch application undone");
 }
 
 sub test_refuse_emacs_trash {

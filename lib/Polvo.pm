@@ -43,7 +43,6 @@ sub new {
     }, $package;
 
     $self->loadConfig($p{'Config'});
-    $self->_checkPatches();
 
     return $self;
 }
@@ -190,11 +189,56 @@ file containing names of all patches already applied.
 
 sub applyPatches {
     my $self = shift;
+    my $options = shift || '';
 
     my $source = $self->{REPOSITORY}.'/patch';
+    my $target = $self->{TARGET}.'/.polvo-patches';
     
+    if (-d $target) {
+	my $cmd = "diff -r $target $source |grep -v 'Only in'";
+	length(`$cmd`) or return 1;
+	$self->unapplyPatches();
+    }
+
+    foreach my $patch ($self->_listPatches($source)) {
+	if (!-f $target . '/' . $self->_patchName($patch)) {
+	    $self->applyPatch($patch, $options);
+	}
+    }
+
+
+    system("cp -r $source $target");
+}
+
+sub unapplyPatches {
+    my $self = shift;
+
+    my $patchDir = $self->{TARGET}.'/.polvo-patches';
+
+    foreach my $patch (reverse $self->_listPatches($patchDir)) {
+	$self->applyPatch($patch, "-R");
+    }
+
+    system("rm -rf $patchDir");
+}
+
+# get absolute path to patch and return path relative to target
+sub _patchName {
+    my $self = shift;
+    my $patch = shift;
+
+    my $rep = $self->{REPOSITORY} . '/patch';
+    
+    $patch =~ s|^$rep/||;
+    return $patch;
+}
+
+sub _listPatches {
+    my $self = shift;
+    my $source = shift;
+
     -d $source
-	or return 1;
+	or return ();
 
     my @patches;
 
@@ -206,9 +250,7 @@ sub applyPatches {
     }
     close FIND;
 
-    foreach my $patch (sort { $self->_stripDir($a) cmp $self->_stripDir($b) } @patches) {
-	$self->applyPatch($patch);
-    }
+    return sort { $self->_stripDir($a) cmp $self->_stripDir($b) } @patches;
 }
 
 sub _stripDir {
@@ -216,27 +258,6 @@ sub _stripDir {
     my $file = shift;
     $file =~ s|^.+/||;
     return $file;
-}
-
-sub _checkPatches {
-    my $self = shift;
-    my $target = $self->{TARGET};
-
-    $self->{PATCHES} = {};
-
-    -f "$target/.polvo-patches"
-	or return 1;
-
-    open ARQ, "$target/.polvo-patches"
-	or die "Can't open patch list at $target/.polvo-patches";
-
-    while (my $patch = <ARQ>) {
-	chomp $patch;
-	$self->{PATCHES}{$patch} = 1;
-    }
-    close ARQ;
-
-    1;
 }
 
 sub _writePatch {
@@ -255,40 +276,24 @@ sub _writePatch {
     1;
 }
 
-# get absolute path to patch and return path relative to target
-sub _patchName {
-    my $self = shift;
-    my $patch = shift;
-
-    my $rep = $self->{REPOSITORY} . '/patch';
-    
-    $patch =~ s|^$rep/||;
-    return $patch;
-}
-
 =pod
 
 =item applyPatch($patchFile)
 
-Takes the path of a patch file and applies it to target dir if not applied before.
+Takes the path of a patch file and applies it to target dir
 
 =cut
 
 sub applyPatch {
     my $self = shift;
     my $patchFile = shift;
-
-    my $patchName = $self->_patchName($patchFile);
-
-    defined $self->{PATCHES}{$patchName} and return 1; #already applied;    
+    my $options = shift || '';
 
     my $oldDir = $ENV{'PWD'};
     chdir $self->{TARGET};
-    system("patch -p0 < $patchFile");
+    system("patch -p0 $options < $patchFile");
     chdir $oldDir;
 
-    $self->{PATCHES}{$patchName} = 1;
-    $self->_writePatch($patchName);
     1;
 }
 
