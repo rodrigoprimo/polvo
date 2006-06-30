@@ -132,6 +132,39 @@ sub test_refuse_emacs_trash {
     $self->assert(length($appliedPatch) == 0, "emacs backup file not applied but recorded");
 }
 
+sub test_order_dir_independent {
+    my $self = shift;
+
+    chdir '/tmp/polvo_test';
+
+    system("cp -a target_new target_new2");
+
+    chdir 'target_new2';
+    open ARQ, ">new_file"; print ARQ "my new file\n"; close ARQ;
+
+    chdir '../target_new';
+    system("diff -Naur . ../target_new2 > ../repository/patch/z/a.patch");
+    
+    chdir '../target_new2';
+
+    open ARQ, ">>new_file"; print ARQ "new line on file\n"; close ARQ;
+
+    chdir '../target_new';
+    system("diff -Naur . ../target_new2 > ../repository/patch/b.patch");
+
+    $self->assert(!-f "/tmp/polvo_test/target/.polvo-patches", "already patched!");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->applyPatches();
+
+    $self->assert(!-f "/tmp/polvo_test/target/new_file", "did not create new file!");
+
+    my $diff = `diff /tmp/polvo_test/target/new_file /tmp/polvo_test/target_new2/new_file`;
+
+    $self->assert(length($diff) > 0, "didn't run second incremental patch!");    
+
+}
+
 sub tear_down {
     system("rm -rf /tmp/polvo_test");
 }
