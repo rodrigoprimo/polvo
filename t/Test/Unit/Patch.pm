@@ -180,7 +180,6 @@ sub test_order_dir_independent {
     my $diff = `diff /tmp/polvo_test/target/new_file /tmp/polvo_test/target_new2/new_file`;
 
     $self->assert(length($diff) == 0, "didn't run second incremental patch!");    
-
 }
 
 sub test_modified_patch {
@@ -211,6 +210,21 @@ sub test_modified_patch {
     $diff = `diff -Naur /tmp/polvo_test/target/file2 /tmp/polvo_test/target_new/file2`;
     $self->assert(length($diff) == 0, "files are not equal\n $diff");
     
+}
+
+sub test_remove_patch {
+    my $self = shift;
+    
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+
+    system("cp -a /tmp/polvo_test/target /tmp/polvo_test/target_backup");
+    $polvo->applyPatches();
+
+    system("rm -rf /tmp/polvo_test/repository/patch/*");
+    $polvo->applyPatches();
+
+    $diff = `diff -Naur /tmp/polvo_test/target /tmp/polvo_test/target_backup`;
+    $self->assert(length($diff) == 0, "patches were not unapplied");
 }
 
 sub _fix_patches {
