@@ -196,8 +196,7 @@ sub applyPatches {
     
     if (-d $target) {
 	my $cmd = "diff -r $target $source |grep -v 'Only in'";
-	length(`$cmd`) or return 1;
-	$self->unapplyPatches();
+	$self->unapplyPatches() if length(`$cmd`);	
     }
 
     foreach my $patch ($self->_listPatches($source)) {
@@ -207,6 +206,7 @@ sub applyPatches {
     }
 
 
+    system("rm -rf $target");
     system("cp -r $source $target");
 }
 
