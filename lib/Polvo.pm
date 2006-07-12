@@ -195,7 +195,7 @@ sub applyPatches {
     my $target = $self->{TARGET}.'/.polvo-patches';
     
     if (-d $target) {
-	my $cmd = "diff -r $target $source |grep -v 'Only in $source'";
+	my $cmd = "diff -r -x CVS $target $source |grep -v 'Only in $source'";
 	$self->unapplyPatches() if length(`$cmd`);	
     }
 
