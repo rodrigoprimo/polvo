@@ -76,17 +76,25 @@ sub loadConfig {
 
     $self->{CONFIG} = $config;
 
-    $self->{REPOSITORY} = $self->{CONFIG}{sourceDir};
     $self->{TARGET} = $self->{CONFIG}{targetDir};
-
-
-    -d $self->{REPOSITORY} or
-	die $self->{REPOSITORY}." is not a directory";    
     -d $self->{TARGET} or
 	die $self->{TARGET}." is not a directory";
-
-    $self->{REPOSITORY} =~ s|/?$||;
     $self->{TARGET} =~ s|/?$||;
+
+    my $ref = ref $self->{CONFIG}{sourceDir};
+    if ($ref && $ref ne 'ARRAY') {
+	die "invalid type for sourceDir";
+    } elsif ($ref) {
+	$self->{REPOSITORIES} = $self->{CONFIG}{sourceDir};
+    } else {
+	$self->{REPOSITORIES} = [ $self->{CONFIG}{sourceDir} ];
+    }
+
+    foreach my $i (0..$#{$self->{REPOSITORIES}}) {
+	-d $self->{REPOSITORIES}[$i] or
+	    die $self->{REPOSITORIES}[$i]." is not a directory";
+	$self->{REPOSITORIES}[$i] =~ s|/?$||;
+    }
 
     if ($config->{connection}) {
 
@@ -134,6 +142,47 @@ sub run {
     1;
 }
 
+# sets $self->{REPOSITORY} for each source repository and calls
+# back the caller function.
+# we need this instead of calling _multiCallCore directly so
+# that call stack is similar for both _multiCall and _multiCallReverse
+sub _multiCall { return _multiCallCore(@_) }
+
+# same as _multiCall, but with reverse order of repositories
+sub _multiCallReverse {
+    my $self = shift;
+
+    $self->{REPOSITORIES} = [ reverse @{$self->{REPOSITORIES}} ];
+    my $result = $self->_multiCallCore(@_);
+    $self->{REPOSITORIES} = [ reverse @{$self->{REPOSITORIES}} ];
+    return $result;
+}
+
+# used for _multiCall and _multiCallCore
+sub _multiCallCore {
+    my $self = shift;
+    my @p = @_;
+
+    my @caller = caller 2;
+    $caller[3] =~ /^Polvo::([^:]+)$/
+	or die "Invalid caller!";
+
+    my $caller = $1;
+
+    my $result;
+    my $size = $#{$self->{REPOSITORIES}};
+    foreach my $i (0..$size) {
+	$self->{REPOSITORY} = $self->{REPOSITORIES}[$i];
+	$self->{PREFIX} = "source" . $i
+	    if $size > 0;
+	$result = $self->$caller(@p) && $result;
+    }
+
+    undef $self->{REPOSITORY};
+
+    return $result;
+}
+
 =pod
 =item copySource()
 
@@ -143,6 +192,9 @@ Looks for a src/ dir in source dir and copies its contents over target dir.
 
 sub copySource {
     my $self = shift;
+
+    $self->{REPOSITORY} or
+	return $self->_multiCall();
     
     my $source = $self->{REPOSITORY}.'/src';
     
@@ -191,11 +243,19 @@ sub applyPatches {
     my $self = shift;
     my $options = shift || '';
 
+    $self->{REPOSITORY} or
+	return $self->_multiCall($options);
+    
+    my $prefix = $self->{PREFIX} || '.';
+
     my $source = $self->{REPOSITORY}.'/patch';
-    my $target = $self->{TARGET}.'/.polvo-patches';
+    my $target = $self->{TARGET}."/$prefix/.polvo-patches";
     
     if (-d $target) {
 	my $cmd = "diff -r -x CVS $target $source |grep -v 'Only in $source'";
+	# TODO: problem here if using multiple repositories, because
+	# reverse order for unapplying patches won't be respected
+	# between repositories
 	$self->unapplyPatches() if length(`$cmd`);	
     }
 
@@ -205,7 +265,6 @@ sub applyPatches {
 	}
     }
 
-
     system("rm -rf $target");
     system("cp -r $source $target");
 }
@@ -213,7 +272,12 @@ sub applyPatches {
 sub unapplyPatches {
     my $self = shift;
 
-    my $patchDir = $self->{TARGET}.'/.polvo-patches';
+    $self->{REPOSITORY} or
+	return $self->_multiCallReverse();
+    
+    my $prefix = $self->{PREFIX} || '.';
+
+    my $patchDir = $self->{TARGET}."/$prefix/.polvo-patches";
 
     foreach my $patch (reverse $self->_listPatches($patchDir)) {
 	$self->applyPatch($patch, "-R");
@@ -260,22 +324,6 @@ sub _stripDir {
     return $file;
 }
 
-sub _writePatch {
-    my $self = shift;
-    my $patchFile = shift;
-
-    my $target = $self->{TARGET};
-
-    open ARQ, ">>$target/.polvo-patches"
-	or die "Can't write $target/.polvo-patches";
-    
-    print ARQ $patchFile, "\n";
-
-    close ARQ;
-
-    1;
-}
-
 =pod
 
 =item applyPatch($patchFile)
@@ -310,6 +358,10 @@ inside repository and run the queries inside them. Different from patch system, 
 sub upgradeDb() {
     my $self = shift;
 
+    $self->{REPOSITORY} or
+	return $self->_multiCall();
+    
+    my $prefix = $self->{PREFIX} || '.';
     my $target = $self->{TARGET};
     my $source = $self->{REPOSITORY} . '/db';
     my $cmd = $self->{MYSQLCMD};
@@ -330,7 +382,7 @@ sub upgradeDb() {
     foreach my $sql (sort @sqls) {
 
 	my $sqlOld = $sql; 
-	$sqlOld =~ s|^$source|$target/.polvo-db|;
+	$sqlOld =~ s|^$source|$target/$prefix/.polvo-db|;
 
 	if (-f $sqlOld) {
 	    open DIFF, "diff -u $sqlOld $sql |";
@@ -348,8 +400,8 @@ sub upgradeDb() {
 	}
     }
 
-    system("rm -rf $target/.polvo-db");
-    system("cp -r $source $target/.polvo-db");
+    system("rm -rf $target/$prefix/.polvo-db");
+    system("cp -r $source $target/$prefix/.polvo-db");
 }
 
 =pod
@@ -363,6 +415,10 @@ All files are run only once.
 sub runPhp() {
     my $self = shift;
 
+    $self->{REPOSITORY} or
+	return $self->_multiCall();
+    
+    my $prefix = $self->{PREFIX} || '.';
     my $target = $self->{TARGET};
     my $source = $self->{REPOSITORY} . '/php';
 
@@ -383,7 +439,7 @@ sub runPhp() {
 
     foreach my $php (sort @phps) {
 	my $phpOld = $php; 
-	$phpOld =~ s|^$source|$target/.polvo-php|;
+	$phpOld =~ s|^$source|$target/$prefix/.polvo-php|;
 
 	if (!-f $phpOld) {
 	    my $phpNew;
@@ -396,8 +452,8 @@ sub runPhp() {
 	}
     }
 
-    system("rm -rf $target/.polvo-php");
-    system("cp -r $source $target/.polvo-php");
+    system("rm -rf $target/$prefix/.polvo-php");
+    system("cp -r $source $target/$prefix/.polvo-php");
     
 }
 
@@ -432,6 +488,7 @@ If you have a web site set up for your module, mention it here.
 =head1 AUTHOR
 
 Fernando Freire, E<lt>nano@E<gt>
+Luis Fagundes, E<lt>lhfagundes@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
