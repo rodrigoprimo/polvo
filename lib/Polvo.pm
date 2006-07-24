@@ -173,8 +173,11 @@ sub _multiCallCore {
     my $size = $#{$self->{REPOSITORIES}};
     foreach my $i (0..$size) {
 	$self->{REPOSITORY} = $self->{REPOSITORIES}[$i];
-	$self->{PREFIX} = "source" . $i
-	    if $size > 0;
+	if ($size > 0) {
+	    $self->{REPOSITORY} =~ m|([^/]+)/?$|
+		or die "weird repository";
+	    $self->{PREFIX} = "/" . $i . "-" . $1;
+	}
 	$result = $self->$caller(@p) && $result;
     }
 
@@ -246,10 +249,10 @@ sub applyPatches {
     $self->{REPOSITORY} or
 	return $self->_multiCall($options);
     
-    my $prefix = $self->{PREFIX} || '.';
+    my $prefix = $self->{PREFIX} || '';
 
     my $source = $self->{REPOSITORY}.'/patch';
-    my $target = $self->{TARGET}."/$prefix/.polvo-patches";
+    my $target = $self->{TARGET}."/.polvo-patches" . $prefix;
     
     if (-d $target) {
 	my $cmd = "diff -r -x CVS $target $source |grep -v 'Only in $source'";
@@ -266,6 +269,8 @@ sub applyPatches {
     }
 
     system("rm -rf $target");
+    system("mkdir -p " . $self->{TARGET} . "/.polvo-patches")
+	if $prefix;
     system("cp -r $source $target");
 }
 
@@ -275,9 +280,9 @@ sub unapplyPatches {
     $self->{REPOSITORY} or
 	return $self->_multiCallReverse();
     
-    my $prefix = $self->{PREFIX} || '.';
+    my $prefix = $self->{PREFIX} || '';
 
-    my $patchDir = $self->{TARGET}."/$prefix/.polvo-patches";
+    my $patchDir = $self->{TARGET}."/.polvo-patches" . $prefix;
 
     foreach my $patch (reverse $self->_listPatches($patchDir)) {
 	$self->applyPatch($patch, "-R");
@@ -361,7 +366,7 @@ sub upgradeDb() {
     $self->{REPOSITORY} or
 	return $self->_multiCall();
     
-    my $prefix = $self->{PREFIX} || '.';
+    my $prefix = $self->{PREFIX} || '';
     my $target = $self->{TARGET};
     my $source = $self->{REPOSITORY} . '/db';
     my $cmd = $self->{MYSQLCMD};
@@ -382,7 +387,7 @@ sub upgradeDb() {
     foreach my $sql (sort @sqls) {
 
 	my $sqlOld = $sql; 
-	$sqlOld =~ s|^$source|$target/$prefix/.polvo-db|;
+	$sqlOld =~ s|^$source|$target/.polvo-db$prefix|;
 
 	if (-f $sqlOld) {
 	    open DIFF, "diff -u $sqlOld $sql |";
@@ -400,8 +405,10 @@ sub upgradeDb() {
 	}
     }
 
-    system("rm -rf $target/$prefix/.polvo-db");
-    system("cp -r $source $target/$prefix/.polvo-db");
+    system("rm -rf $target/.polvo-db" . $prefix);
+    system("mkdir -p $target/.polvo-db")
+	if $prefix;
+    system("cp -r $source $target/.polvo-db" . $prefix);
 }
 
 =pod
@@ -418,7 +425,7 @@ sub runPhp() {
     $self->{REPOSITORY} or
 	return $self->_multiCall();
     
-    my $prefix = $self->{PREFIX} || '.';
+    my $prefix = $self->{PREFIX} || '';
     my $target = $self->{TARGET};
     my $source = $self->{REPOSITORY} . '/php';
 
@@ -439,7 +446,7 @@ sub runPhp() {
 
     foreach my $php (sort @phps) {
 	my $phpOld = $php; 
-	$phpOld =~ s|^$source|$target/$prefix/.polvo-php|;
+	$phpOld =~ s|^$source|$target/.polvo-php$prefix|;
 
 	if (!-f $phpOld) {
 	    my $phpNew;
@@ -452,8 +459,10 @@ sub runPhp() {
 	}
     }
 
-    system("rm -rf $target/$prefix/.polvo-php");
-    system("cp -r $source $target/$prefix/.polvo-php");
+    system("rm -rf $target/.polvo-php" . $prefix);
+    system("mkdir -p $target/.polvo-php")
+	if $prefix;
+    system("cp -r $source $target/.polvo-php" . $prefix);
     
 }
 
