@@ -134,6 +134,12 @@ Runs everything.
 sub run {
     my $self = shift;
 
+    if ($#{$self->{REPOSITORIES}} > 0) {
+	# this is bad, unapplying and reapplying all patches everytime,
+	# but by now it's the simplest way to avoid copySource to override
+	# patched files.
+	$self->unapplyPatches();
+    }
     $self->copySource();
     $self->applyPatches();
     $self->upgradeDb();
@@ -144,26 +150,11 @@ sub run {
 
 # sets $self->{REPOSITORY} for each source repository and calls
 # back the caller function.
-# we need this instead of calling _multiCallCore directly so
-# that call stack is similar for both _multiCall and _multiCallReverse
-sub _multiCall { return _multiCallCore(@_) }
-
-# same as _multiCall, but with reverse order of repositories
-sub _multiCallReverse {
-    my $self = shift;
-
-    $self->{REPOSITORIES} = [ reverse @{$self->{REPOSITORIES}} ];
-    my $result = $self->_multiCallCore(@_);
-    $self->{REPOSITORIES} = [ reverse @{$self->{REPOSITORIES}} ];
-    return $result;
-}
-
-# used for _multiCall and _multiCallCore
-sub _multiCallCore {
+sub _multiCall { 
     my $self = shift;
     my @p = @_;
 
-    my @caller = caller 2;
+    my @caller = caller 1;
     $caller[3] =~ /^Polvo::([^:]+)$/
 	or die "Invalid caller!";
 
@@ -184,6 +175,40 @@ sub _multiCallCore {
     undef $self->{REPOSITORY};
 
     return $result;
+}
+
+# same as _multiCall, but with reverse order of repositories
+# abstraction here is tricky, because of call stack depth
+sub _multiCallReverse {
+    my $self = shift;
+    my @p = @_;
+
+    my @caller = caller 1;
+    $caller[3] =~ /^Polvo::([^:]+)$/
+	or die "Invalid caller!";
+
+    my $caller = $1;
+
+    my $result;
+    my $size = $#{$self->{REPOSITORIES}};
+    foreach my $i (0..$size) {
+	my $j = $size - $i;
+	$self->{REPOSITORY} = $self->{REPOSITORIES}[$j];
+	if ($size > 0) {
+	    $self->{REPOSITORY} =~ m|([^/]+)/?$|
+		or die "weird repository";
+	    $self->{PREFIX} = "/" . $j . "-" . $1;
+	}
+	$result = $self->$caller(@p) && $result;
+    }
+
+    undef $self->{REPOSITORY};
+
+    return $result;
+}
+
+# used for _multiCall and _multiCallCore
+sub _multiCallCore {
 }
 
 =pod
