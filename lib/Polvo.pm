@@ -127,6 +127,17 @@ sub loadConfig {
 
 =pod
 
+=item getRepositories()
+
+Returns a list of repository directories from config
+
+=cut
+
+sub getRepositories {
+    my $self = shift;
+    return @{$self->{REPOSITORIES}};
+}
+
 =item run()
 
 Runs everything.
