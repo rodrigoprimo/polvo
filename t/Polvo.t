@@ -7,6 +7,7 @@ BEGIN {
 use Polvo;
 
 
+$testPackage->new()->start('Test::Unit::MultiRepository');
 $testPackage->new()->start('Test::Unit::UpgradeDb');
 $testPackage->new()->start('Test::Unit::Reset');
 $testPackage->new()->start('Test::Unit::Patch');
