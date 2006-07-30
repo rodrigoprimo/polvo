@@ -7,6 +7,8 @@ our $VERSION = '0.1';
 use XML::Simple;
 use MD5;
 
+#use Polvo::OutputBuffer;
+
 =head1 NAME
 
 Polvo - Perl extension for installing modules over repositories
@@ -138,6 +140,7 @@ sub run {
 	# this is bad, unapplying and reapplying all patches everytime,
 	# but by now it's the simplest way to avoid copySource to override
 	# patched files.
+	# TODO: only copy updated files and only unpatch if necessary
 	$self->unapplyPatches();
     }
     $self->copySource();
@@ -207,8 +210,12 @@ sub _multiCallReverse {
     return $result;
 }
 
-# used for _multiCall and _multiCallCore
-sub _multiCallCore {
+sub _startOutputBuffer {
+    my $self = shift;
+
+    $self->{OUTPUT} = '';
+
+    
 }
 
 =pod
@@ -249,7 +256,15 @@ sub _copyDir {
 	$item =~ /^(\.+|.*~|\#.*|CVS)$/ and next;
 
 	if (-f "$source/$item") {
-	    system("cp $source/$item $target/$item");
+	    if (!-f "$target/$item") {
+		system("cp -a $source/$item $target/$item");
+	    } else {
+		my @modeSource = stat "$source/$item";
+		my @modeTarget = stat "$target/$item";
+		if ($modeSource[9] != $modeTarget[9]) { #mtime
+		    system("cp -a $source/$item $target/$item");
+		}
+	    }
 	} elsif (-d "$source/$item") {
 	    -d "$target/$item"
 		or mkdir "$target/$item", 02775;
@@ -370,7 +385,8 @@ sub applyPatch {
     my $oldDir = $ENV{'PWD'};
     chdir $self->{TARGET};
     system("patch -p0 $options < $patchFile");
-    chdir $oldDir;
+    chdir $oldDir
+	if $oldDir;
 
     1;
 }
@@ -398,6 +414,9 @@ sub upgradeDb() {
 
     -d $source && defined $cmd
 	or return 1;
+
+#    my $msgs;
+#    tie *STDOUT, 'Polvo::OutputBuffer', \$msgs;
 
     my @sqls;
 
@@ -434,6 +453,7 @@ sub upgradeDb() {
     system("mkdir -p $target/.polvo-db")
 	if $prefix;
     system("cp -r $source $target/.polvo-db" . $prefix);
+
 }
 
 =pod
