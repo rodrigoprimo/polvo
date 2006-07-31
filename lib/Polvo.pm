@@ -122,6 +122,17 @@ sub loadConfig {
 	close CONN;
     }
 
+    if ($config->{replace}) {
+	my @replacements;
+	if (ref($config->{replace}) eq 'ARRAY') {
+	    @replacements = @{$config->{replace}};
+	} else {
+	    push @replacements, $config->{replace};
+	}
+
+	$self->{REPLACEMENTS} = \@replacements;
+    }
+
     1;
 }
 
@@ -154,6 +165,7 @@ sub run {
 	# TODO: only copy updated files and only unpatch if necessary
 	$self->unapplyPatches();
     }
+    $self->runReplaces();
     $self->copySource();
     $self->applyPatches();
     $self->upgradeDb();
@@ -520,6 +532,53 @@ sub runPhp() {
 	if $prefix;
     system("cp -r $source $target/.polvo-php" . $prefix);
     
+}
+
+=pod
+=item runReplaces()
+
+Looks for all <replace> tags in config file and makes regular expression substitutions on
+desired files. Config should look like this:
+
+<replace>
+  <file>src/some_file.php</file>
+  <from>/var/www/</from>
+  <to>/my/custom/document/root/</to>
+</replace>
+
+=cut
+    
+sub runReplaces() {
+    my $self = shift;
+
+    defined $self->{REPLACEMENTS} or return 1;
+
+    $self->{REPOSITORY} or
+	return $self->_multiCall();
+    
+    my $source = $self->{REPOSITORY};
+
+    chdir $source;
+
+    foreach my $rep (@{$self->{REPLACEMENTS}}) {
+	my $file = $rep->{file};
+	my $from = $rep->{from};
+	my $to = $rep->{to};
+
+	defined $file && -f $file
+	    or die "no file in replacement";
+
+	open ARQ, "$file";
+	my $content = join '', <ARQ>;
+	close ARQ;
+
+	my $regex = qr{$from};
+	$content =~ s/$regex/$to/g;
+
+	open ARQ, ">$file";
+	print ARQ $content;
+	close ARQ;
+    }
 }
 
 =pod
