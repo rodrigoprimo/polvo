@@ -107,12 +107,17 @@ sub loadConfig {
 	my $db = $config->{connection}{database};
 	my $user = $config->{connection}{user};
 	my $pass = $config->{connection}{password} || '';
+	my $host = $config->{connection}{host} || '';
 
 	ref $pass and $pass = '';
 
 	$pass = '-p'.$pass if $pass;
 
-	$self->{MYSQLCMD} = "mysql -f -u $user $pass $db";
+	ref $host and $host = '';
+
+	$host = '-h'.$host if $host;
+
+	$self->{MYSQLCMD} = "mysql -f -u $user $pass $db $host";
     } elsif ($config->{mysqlcmd}) {
 	$self->{MYSQLCMD} = $config->{mysqlcmd};
     }

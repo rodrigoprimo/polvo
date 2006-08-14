@@ -42,6 +42,7 @@ insert into polvo_test2 values('nome');";
     <database>polvo_test</database>
     <user>root</user>
     <password>$dbRootPass</password>
+    <host>localhost</host>
   </connection>
 </polvoConfig>";
     close ARQ;
