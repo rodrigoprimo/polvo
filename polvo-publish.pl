@@ -58,6 +58,7 @@ $polvo->run();
 chdir "/noe/data/dominios/$ARGV[0]";
 system("rm htdocs");
 system("ln -s htdocs-prod htdocs");
+system("chown -R nobody:nobody htdocs-prod")
 system("rm -rf /tmp/$sysName");
 
-die "publicação realizada com sucesso!\n favor tomar cerveja!\n"
+die "publicação realizada com sucesso!\nfavor tomar cerveja!\n"
