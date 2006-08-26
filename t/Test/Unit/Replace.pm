@@ -45,7 +45,7 @@ sub test_single_replace {
 <polvoConfig>
   <targetDir>/tmp/polvo_test/target</targetDir>
   <sourceDir>/tmp/polvo_test/repository</sourceDir>
-  <replace file="src/file1">
+  <replace file="file1">
     <from>This line should not be here</from>
     <to>The file was successfully changed</to>
   </replace>
@@ -73,11 +73,11 @@ sub test_multi_replaces {
 <polvoConfig>
   <targetDir>/tmp/polvo_test/target</targetDir>
   <sourceDir>/tmp/polvo_test/repository</sourceDir>
-  <replace file="src/file1">
+  <replace file="file1">
     <from>This line should not be here</from>
     <to>The file was successfully changed</to>
   </replace>
-  <replace file="src/file1">
+  <replace file="file1">
     <from>Neither this one</from>
     <to>The file was successfully changed again</to>
   </replace>
@@ -99,6 +99,34 @@ sub test_multi_replaces {
 
     $self->assert(length($grep1) == 0, "Replace didn't work");
     $self->assert(length($grep2) == 0, "Replace didn't work");
+}
+
+sub test_preserve_repository {
+    my $self = shift;
+
+    chdir '/tmp/polvo_test';
+    
+    open ARQ, ">test.conf";
+    print ARQ qq|
+<polvoConfig>
+  <targetDir>/tmp/polvo_test/target</targetDir>
+  <sourceDir>/tmp/polvo_test/repository</sourceDir>
+  <replace file="file1">
+    <from>This line should not be here</from>
+    <to>The file was successfully changed</to>
+  </replace>
+</polvoConfig>
+|;
+    close ARQ;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->run();
+
+    $self->assert(-f '/tmp/polvo_test/target/file1', "file1 was not copied to target");
+
+    my $grep = `grep 'This line should not be here' /tmp/polvo_test/repository/src/file1`;
+
+    $self->assert(length($grep) > 0, "Replace didn't preserve repository");
 }
 
 sub tear_down {

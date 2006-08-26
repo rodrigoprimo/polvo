@@ -170,11 +170,11 @@ sub run {
 	# TODO: only copy updated files and only unpatch if necessary
 	$self->unapplyPatches();
     }
-    $self->runReplaces();
     $self->copySource();
     $self->applyPatches();
     $self->upgradeDb();
     $self->runPhp();
+    $self->runReplaces();
 
     1;
 }
@@ -542,11 +542,11 @@ sub runPhp() {
 =pod
 =item runReplaces()
 
-Looks for all <replace> tags in config file and makes regular expression substitutions on
-desired files. Config should look like this:
+Looks for all <replace> tags in config file and makes regular expression
+substitutions on desired files in target. Config should look like this:
 
 <replace>
-  <file>src/some_file.php</file>
+  <file>some_file.php</file>
   <from>/var/www/</from>
   <to>/my/custom/document/root/</to>
 </replace>
@@ -561,9 +561,9 @@ sub runReplaces() {
     $self->{REPOSITORY} or
 	return $self->_multiCall();
     
-    my $source = $self->{REPOSITORY};
+    my $target = $self->{TARGET};
 
-    chdir $source;
+    chdir $target;
 
     foreach my $rep (@{$self->{REPLACEMENTS}}) {
 	my $file = $rep->{file};
@@ -571,7 +571,7 @@ sub runReplaces() {
 	my $to = $rep->{to};
 
 	defined $file && -f $file
-	    or die "no file in replacement";
+	    or die "no file in replacement: $file";
 
 	open ARQ, "$file";
 	my $content = join '', <ARQ>;
