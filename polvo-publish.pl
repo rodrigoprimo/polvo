@@ -45,7 +45,7 @@ system("ln -s htdocs-foradoar htdocs");
 system("cp -a htdocs-prod htdocs-bk-$cvsTag-$day") == 0
     or die "não consegui fazer backup dos arquivos";
 
-system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=latin1 $sysName > db-bk-$cvsTag-$day;") == 0
+system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=latin1 $sysName > db-bk-$cvsTag-$day.sql") == 0
     or die "não consegui fazer bk do banco\n";
 
 chdir $location;
