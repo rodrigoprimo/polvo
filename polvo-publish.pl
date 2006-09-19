@@ -11,7 +11,7 @@ $ARGV[0] && $ARGV[1] or &help;
 
 sub help {
     print "usage: polvo-publish.pl system release [dbname]
-           ex: polvo-publish.pl converse 1-0-2\n";
+           ex: polvo-publish.pl converse.org.br 1-0-2\n";
     exit 0;
 }
 
@@ -42,11 +42,10 @@ system("rm htdocs");
     or die "não tem htdocs-foradoar!\n";
 system("ln -s htdocs-foradoar htdocs");
 
-system("cp -a htdocs-prod htdocs-bk-$day") == 0
+system("cp -a htdocs-prod htdocs-bk-$cvsTag-$day") == 0
     or die "não consegui fazer backup dos arquivos";
 
-chdir "/noe/data/dbms/mysql";
-system("svc -d /service/mysqld; sleep 2; cp -a $sysName $sysName-bk-$day; svc -u /service/mysqld; sleep 2;") == 0
+system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=latin1 $sysName > db-bk-$cvsTag-$day;") == 0
     or die "não consegui fazer bk do banco\n";
 
 chdir $location;
