@@ -105,6 +105,7 @@ sub test_php_refuse_emacs_trash {
     chdir '/tmp/polvo_test/repository/php';
     system("mv test.php test.php~");
     system('cp test.php~ \#test.php');
+    system('cp test.php~ .\#test.php');
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->runPhp();

@@ -149,6 +149,20 @@ sub test_refuse_emacs_trash {
     my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test where name = 'name'");
     $self->assert($result == 0, 'should not run emacs backup file');
 
+
+    system("mv /tmp/polvo_test/repository/db/#upgrade.sql /tmp/polvo_test/repository/db/.#upgrade.sql");
+
+    $self->{POLVO}->upgradeDb();
+
+    my $dbh = DBI->connect('dbi:mysql:mysql:localhost', 'root', $dbRootPass) or die 'unable to connect to mysql';
+
+    my $sth = $self->{DBH}->prepare("show tables like 'polvo_test%'");
+    $sth->execute();
+    $self->assert($sth->rows == 1, 'created table from emacs backup file');
+    
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test where name = 'name'");
+    $self->assert($result == 0, 'should not run emacs backup file');
+
 }
 
 sub test_execution_order {

@@ -452,7 +452,7 @@ sub upgradeDb() {
     while (my $sql = <FIND>) {
 	chomp $sql;
 	push @sqls, $sql
-	    unless $sql =~ m/(^|\/)\#[^\/]+/ or $sql =~ /~$/;
+	    unless $sql =~ m/(^|\/)\.?\#[^\/]+/ or $sql =~ /~$/;
     }
     close FIND;
 
@@ -513,7 +513,7 @@ sub runPhp() {
     while (my $php = <FIND>) {
 	chomp $php;
 	push @phps, $php
-	    unless $php =~ m/(^|\/)\#[^\/]+/ or $php =~ /~$/;
+	    unless $php =~ m/(^|\/)\.?\#[^\/]+/ or $php =~ /~$/;
     }
     close FIND;
 
