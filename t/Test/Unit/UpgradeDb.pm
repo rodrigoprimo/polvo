@@ -185,6 +185,44 @@ sub test_execution_order {
     $self->assert($result == 1, 'did not run sql files in order');
 
 }
+
+sub test_execution_order_subdir_independent {
+    my $self = shift;
+
+    open ARQ, ">/tmp/polvo_test/repository/db/01.sql";
+    print ARQ "create table polvo_test_order (x text);\n";
+    print ARQ "insert into polvo_test_order (x) values ('first');\n";
+    close ARQ;
+    
+    open ARQ, ">/tmp/polvo_test/repository/db/05.sql";
+    print ARQ "update polvo_test_order set x='d' where x='c';\n";
+    close ARQ;
+    
+    open ARQ, ">/tmp/polvo_test/repository/db/02.sql";
+    print ARQ "update polvo_test_order set x='a' where x='first';\n";
+    close ARQ;
+    
+    mkdir "/tmp/polvo_test/repository/db/subdir";
+
+    open ARQ, ">/tmp/polvo_test/repository/db/subdir/03.sql";
+    print ARQ "update polvo_test_order set x='b' where x='a';\n";
+    close ARQ;
+    
+    open ARQ, ">/tmp/polvo_test/repository/db/06.sql";
+    print ARQ "update polvo_test_order set x='e' where x='d';\n";
+    close ARQ;
+    
+    open ARQ, ">/tmp/polvo_test/repository/db/04.sql";
+    print ARQ "update polvo_test_order set x='c' where x='b';\n";
+    close ARQ;
+    
+    $self->{POLVO}->upgradeDb();
+
+    my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test_order where x = 'e'");
+    $self->assert($result == 1, 'sql order was not subdir independent');
+
+
+}
     
 sub tear_down {
     my $self = shift;

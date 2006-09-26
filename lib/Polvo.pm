@@ -456,7 +456,7 @@ sub upgradeDb() {
     }
     close FIND;
 
-    foreach my $sql (sort @sqls) {
+    foreach my $sql (sort { $self->_stripDir($a) cmp $self->_stripDir($b) } @sqls) {
 
 	my $sqlOld = $sql; 
 	$sqlOld =~ s|^$source|$target/.polvo-db$prefix|;
