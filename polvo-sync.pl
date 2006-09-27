@@ -45,6 +45,8 @@ my $confFile = $confDir . $sysName . $confExtension;
 my @time = localtime;
 my $day = $time[3] . ($time[4]+1) . ($time[5]+1900);
 
+# TODO: pra automatizar tem q tirar esse backup, coloquei por seguranca, mas com o warning do killerCmd acho q
+# nao eh mais necessario - asa
 print "Saving temporary backup of $sysName database at ~/$sysName-$day.out.gz\n";
 
 system("mysqldump -u root -p`cat /etc/senha_mysql` --default-character-set=latin1 $sysName > ~/$sysName-$day.out");
