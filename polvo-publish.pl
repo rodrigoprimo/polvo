@@ -15,7 +15,8 @@ sub help {
     exit 0;
 }
 
-my ($sysName) = $ARGV[3] ? $ARGV[3] : $ARGV[0] =~ /([^.]*)\..*/;
+# argv[3] eh o que? nao devia ser argv[2]? - asa
+my ($sysName) = $ARGV[2] ? $ARGV[2] : $ARGV[0] =~ /([^.]*)\..*/;
 my $confFile = $sysName . ".conf";
 my $cvsTag = "RELEASE-" . $ARGV[1];
 
@@ -45,7 +46,11 @@ system("ln -s htdocs-foradoar htdocs");
 system("cp -a htdocs-prod htdocs-bk-$cvsTag-$day") == 0
     or die "não consegui fazer backup dos arquivos";
 
-system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=latin1 $sysName > db-bk-$cvsTag-$day.sql") == 0
+my $charset;
+if ($sysName == 'converse') $charset='utf8';
+else $charset='latin1';
+
+system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=$charset $sysName > db-bk-$cvsTag-$day.sql") == 0
     or die "não consegui fazer bk do banco\n";
 
 chdir $location;
