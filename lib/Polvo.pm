@@ -154,6 +154,8 @@ sub getRepositories {
     return @{$self->{REPOSITORIES}};
 }
 
+=pod
+
 =item run()
 
 Runs everything.
@@ -247,6 +249,7 @@ sub _startOutputBuffer {
 }
 
 =pod
+
 =item copySource()
 
 Looks for a src/ dir in source dir and copies its contents over target dir.
@@ -302,11 +305,13 @@ sub _copyDir {
 }
 
 =pod
+
 =item applyPatches()
 
 Looks for a patch/ dir in source dir, finds every .patch file and apply it to target dir
 with patch -p0 command. All patches are applied only once. Polvo keeps a .polvo-patches
-file containing names of all patches already applied.
+dir containing all patches already applied, so that if you later edit a patch Polvo will unapply
+the old patch and apply the new one.
 
 =cut
 
@@ -341,6 +346,14 @@ sub applyPatches {
 	if $prefix;
     system("cp -r $source $target");
 }
+
+=pod
+
+=item unapplyPatches()
+
+Checks the .polvo-patches dir created by applyPatches() and unapply all patches found there.
+
+=cut
 
 sub unapplyPatches {
     my $self = shift;
@@ -399,7 +412,7 @@ sub _stripDir {
 
 =pod
 
-=item applyPatch($patchFile)
+=item applyPatch( $patchFile )
 
 Takes the path of a patch file and applies it to target dir
 
@@ -424,8 +437,8 @@ sub applyPatch {
 =item upgradeDb()
 
 If there's a database connection configured in config file, looks for all .sql files in db/ directory
-inside repository and run the queries inside them. Different from patch system, sql files can be incremented
-(always at end, never editing mid of file) and only new queries will be run.
+inside repository and run the queries inside them. Sql files can be incremented and only new queries will be run.
+
 
 =cut
 
@@ -485,6 +498,7 @@ sub upgradeDb() {
 }
 
 =pod
+
 =item runPhp()
 
 Looks for a php/ dir in source dir, finds every .php file and runs it relative to target.
@@ -540,16 +554,11 @@ sub runPhp() {
 }
 
 =pod
+
 =item runReplaces()
 
 Looks for all <replace> tags in config file and makes regular expression
-substitutions on desired files in target. Config should look like this:
-
-<replace>
-  <file>some_file.php</file>
-  <from>/var/www/</from>
-  <to>/my/custom/document/root/</to>
-</replace>
+substitutions on desired files in target.
 
 =cut
     
@@ -587,34 +596,98 @@ sub runReplaces() {
 }
 
 =pod
-=item reset()
 
-Checks if there's a section named resetCmd in config file, if so runs it.
+=head1 CONFIGURATION FILE
 
-=cut
+Configuration file used by Polvo is a XML. It has a <polvoConfig> tag around everything and must have a <targetDir>, <sourceDir> and either a <mysqlcmd> or <connection> sections. See examples below.
 
-sub reset() {
-    my $self = shift;
+=over 4
 
-    my $resetCmd = $self->{CONFIG}{resetCmd} or return 1;
+=item targetDir
 
-    system($resetCmd);
-}
+The document root of web server where your system is installed. Tipically you have a PHP CMS like TikiWiki or Drupal installed there.
 
-=pod
+=item sourceDir
 
-=head1 SEE ALSO
+The repository with your code, containing src/, db/, patch/ and php/ dirs.
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
+=item connection
 
-If you have a mailing list set up for your module, mention it here.
+This section has 3 subsections: database, user and password, to specify how Polvo will connect to your MYSQL (only db available) database to run scripts found in db/ dir. For this to work, "mysql" command must be in path, otherwise use <mysqlcmd>
 
-If you have a web site set up for your module, mention it here.
+=item mysqlcmd
 
-=head1 AUTHOR
+In case mysql is not in path, or you need to pass extra parameters to mysql, use this to specify complete mysql command to connect to database.
+
+=item phpcmd
+
+If "php" command is not in path, you need to specify complete path here if you have a php/ dir in your repository.
+
+=item replace
+
+Here you can specify a <file>, <from> and <to> sections to run a search & replace in a file in target. This is useful if you must have
+installation-specific configurations hardcoded in your repository.
+
+=back
+
+=head2 EXAMPLES
+
+=item Basic config
+
+ <polvoConfig>
+   <targetDir>/var/www/estudiolivre</targetDir>
+   <sourceDir>/home/lfagundes/devel/estudiolivre</sourceDir>
+   <connection>
+     <database>estudiolivre</database>
+     <user>root</user>
+     <password>secret_passord</password>
+   </connection>
+ </polvoConfig>
+
+=item With mysqlcmd
+
+ <polvoConfig>
+   <targetDir>/var/www/estudiolivre</targetDir>
+   <sourceDir>/home/lfagundes/devel/estudiolivre</sourceDir>
+   <mysqlcmd>/noe/dbms/mysql/bin/bin/mysql estudiolivre -u root</mysqlcmd>
+ </polvoConfig>
+
+=item Using mysql password from external file
+
+ <polvoConfig>
+   <targetDir>/var/www/estudiolivre</targetDir>
+   <sourceDir>/home/lfagundes/devel/estudiolivre</sourceDir>
+   <connection>
+     <database>estudiolivre</database>
+     <user>root</user>
+     <password>`cat /etc/senha_mysql`</password>
+   </connection>
+ </polvoConfig>
+
+=item Php binary not in path
+
+  <polvoConfig>
+    <targetDir>/var/www/estudiolivre</targetDir>
+    <sourceDir>/home/lfagundes/devel/estudiolivre</sourceDir>
+    <mysqlcmd>/noe/dbms/mysql/bin/bin/mysql estudiolivre -u root</mysqlcmd>
+    <phpcmd>/noe/php/bin/bin/php</phpcmd>
+  </polvoConfig> 
+
+=item Replace 
+
+  <polvoConfig>
+    <targetDir>/noe/data/vhost/culturadigital.org.br/htdocs</targetDir>
+    <sourceDir>/home/lfagundes/devel/mapsys</sourceDir>
+    <mysqlcmd>/noe/dbms/mysql/bin/bin/mysql mapsys -u root</mysqlcmd>
+    <replace>
+      <file>maps/pontos.map</file>
+      <from>/var/www/mapsys</from>
+      <to>/noe/data/vhost/culturadigital.org.br/htdocs</to>
+    </replace>
+  </polvoConfig>
+
+
+=head1 AUTHORS
 
 Fernando Freire, E<lt>nano@E<gt>
 Luis Fagundes, E<lt>lhfagundes@gmail.comE<gt>
