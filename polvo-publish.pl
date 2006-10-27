@@ -47,8 +47,11 @@ system("cp -a htdocs-prod htdocs-bk-$cvsTag-$day") == 0
     or die "não consegui fazer backup dos arquivos";
 
 my $charset;
-if ($sysName == 'converse') $charset='utf8';
-else $charset='latin1';
+if ($sysName eq 'converse') {
+    $charset='utf8';
+} else {
+    $charset='latin1';
+}
 
 system("mysqldump -p`cat /etc/senha_mysql` --default-character-set=$charset $sysName > db-bk-$cvsTag-$day.sql") == 0
     or die "não consegui fazer bk do banco\n";
