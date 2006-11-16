@@ -483,7 +483,7 @@ sub upgradeDb() {
 	    }
 	    close DIFF;
 	    open DB, "|$cmd";
-	    print DB join('', @lines);
+	    print DB join('', grep(/^[^-]/, @lines));
 	    close DB;
 	} else {
 	    system("$cmd < $sql");
