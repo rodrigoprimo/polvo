@@ -1,0 +1,16 @@
+O Polvo é uma ferramenta para instalar módulos personalizados sobre sistemas baseados em arquivos. A
+situação típica (para a qual ele foi desenvolvido) é um sistema em software livre feito em PHP+MySQL
+que você quer modificar, porém sem perder a capacidade de atualizar a versão do software e manter o seu
+código personalizado.
+
+A ferramenta foi desenvolvida especificamente para um grupo de desenvolvedores, e portanto há algumas
+ferramentas (polvo-sync.pl, polvo-publish.pl, polvo-daemon.pl) que dependem dos nossos padrões e não
+estão documentadas. Porém a ferramenta principal, o comando "polvo", é generica e apenas depende de
+um arquivo de configuração descrito na manpage do Polvo (em inglês, na verdade a manpage descreve
+a biblioteca em perl Polvo.pm, usada pelo polvo).
+
+Se você vai usar o polvo, note que ainda não há mensagens amigáveis para o usuário final e ainda
+não é seguro contra falhas: caso a configuração do banco de dados esteja errada, o comando "patch" não
+esteja no caminho de execução ou algo do tipo, o polvo vai falhar, porém na próxima execução vai rodar
+como se tivesse funcionado. Portanto, faça backups.
+

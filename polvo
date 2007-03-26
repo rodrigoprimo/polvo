@@ -15,7 +15,8 @@ my $polvo = Polvo->new(Config => $ARGV[0]);
 $polvo->run();
 
 sub help {
-    print "usage: polvo.pl configfile\n";
+    print "usage: polvo configfile\n\n";
+    print "man Polvo for configuration format\n";
     exit 0;
 }
 

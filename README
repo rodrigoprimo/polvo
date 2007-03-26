@@ -1,0 +1,14 @@
+Polvo is a tool for installing custom modules over file-based systems. The tipical situation (for
+which it was developed) is a PHP+MySQL free software that you want to modify, but later you want to
+upgrade the software and keep your custom code.
+
+The tool was developed specifically for a group of developers, and so there are some tools (polvo-sync.pl,
+polvo-publish.pl, polvo-daemon.pl) that depend on our standards and are not documented. The main tool, the
+"polvo" command, is generic though, and just depends on a configuration file described in Polvo manpage
+(that in fact describes the Polvo.pm perl library used for polvo).
+
+If you'll use polvo, you should note that it still lacks user-friendly messages and it's not yet
+fail safe, in case you have wrong db configuration, patch command not in path and stuff like that,
+polvo will fail its routines and next time it runs the modifications will be noted as done. So,
+make backups.
+
