@@ -17,7 +17,7 @@ sub help {
 
 # argv[3] eh o que? nao devia ser argv[2]? - asa
 my ($sysName) = $ARGV[2] ? $ARGV[2] : $ARGV[0] =~ /([^.]*)\..*/;
-my $confFile = $sysName . ".conf";
+my $confFile = $sysName . "-polvo.conf";
 my $cvsTag = "RELEASE-" . $ARGV[1];
 
 my @time = localtime;
