@@ -16,6 +16,7 @@ sub suite {
     $suite->add_test(Test::Unit::TestSuite->new('Test::Unit::MultiRepository'));
     $suite->add_test(Test::Unit::TestSuite->new('Test::Unit::GetRepositories'));
     $suite->add_test(Test::Unit::TestSuite->new('Test::Unit::Replace'));
+    $suite->add_test(Test::Unit::TestSuite->new('Test::Unit::PostCommand'));
     
     return $suite;
 }

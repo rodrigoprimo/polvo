@@ -137,6 +137,10 @@ sub loadConfig {
 
 	$self->{REPLACEMENTS} = \@replacements;
     }
+    
+    if ($config->{postCommand}) {
+	$self->{POSTCOMMAND} = $config->{postCommand};
+    }
 
     1;
 }
@@ -177,6 +181,7 @@ sub run {
     $self->upgradeDb();
     $self->runPhp();
     $self->runReplaces();
+    $self->runPostCommand();
 
     1;
 }
@@ -597,6 +602,29 @@ sub runReplaces() {
 
 =pod
 
+=item runPostCommand()
+
+Looks for all <postcommand> tags in config file and executes a system command on the target
+directory, as the last task of the instalation
+
+=cut
+    
+sub runPostCommand() {
+    my $self = shift;
+    defined $self->{POSTCOMMAND} or
+	return 1;
+
+
+    my $cmd = $self->{POSTCOMMAND};
+    my $target = $self->{TARGET};
+    
+    chdir $target;
+    system($cmd);
+}
+
+
+=pod
+
 =head1 CONFIGURATION FILE
 
 Configuration file used by Polvo is a XML. It has a <polvoConfig> tag around everything and must have a <targetDir>, <sourceDir> and either a <mysqlcmd> or <connection> sections. See examples below.
@@ -627,6 +655,10 @@ If "php" command is not in path, you need to specify complete path here if you h
 
 Here you can specify a <file>, <from> and <to> sections to run a search & replace in a file in target. This is useful if you must have
 installation-specific configurations hardcoded in your repository.
+
+= item postCommand
+
+You can pass any system command, that will be executed on the target directory as the last task.
 
 =back
 
