@@ -1,0 +1,5 @@
+Version 0.7.1
+
+* [FIX] polvo-publish funciona no novo esquema no path do sistema
+* renomeando "polvo.pl" pra "polvo", que vai ficar no path README p/ release
+* [new] <postCommand> implementado. Agora eh possivel rodar comandos depois que terminar de rodar a instalacao
