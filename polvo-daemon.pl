@@ -32,7 +32,11 @@ my @polvos = map { Polvo->new(Config => $_) } @targets;
 foreach my $polvo (@polvos) {
     foreach my $rep ($polvo->getRepositories()) {
 	chdir $rep;
-	system("cvs up -dP");
+	if (-d 'CVS') {
+	    system("cvs up -dP");
+	} elsif (-d '.svn') {
+	    system("svn up");	    
+	}
     }
 
     $polvo->run();
