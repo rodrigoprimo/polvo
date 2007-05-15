@@ -1,3 +1,6 @@
+Version 0.7.2
+[NEW] suporte a svn no polvo-daemon e polvo-publish
+
 Version 0.7.1
 
 * [FIX] polvo-publish funciona no novo esquema no path do sistema
