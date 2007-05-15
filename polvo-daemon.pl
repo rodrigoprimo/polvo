@@ -6,29 +6,35 @@ use strict;
 
 use Polvo;
 
-our @systemList = qw(estudiolivre_teste mapsys_teste converse_teste);
-
-our $confDir = "/home/nano/source/polvo/";
-our $confExtension = ".conf";
+our $domainsDir = "/noe/data/dominios";
 
 our $interval = 15; #interval between each execution, in minutes
 
-foreach my $s (@systemList) {
-    die "automatic install on production forbidden!"
-	unless $s =~ /teste/;
+$domainsDir =~ s|/?$||;
+
+opendir DIR, $domainsDir
+    or die "can't open $domainsDir: $!";
+
+my @polvos;
+
+while (my $subdir = readdir(DIR)) {
+    -d "$domainsDir/$subdir"
+	or next;
+    $subdir =~ /^teste/
+	or next;
+
+    my @confs = <$domainsDir/$subdir/*-teste-polvo.conf>;
+
+    $confs[0] or next;
+
+    if ($#confs > 0) {
+	warn "ignorando configuracoes do polvo em $subdir, mais de um conf";
+	next;
+    }
+
+    push @polvos, Polvo->new('Config' => $confs[0]);    
 }
-
-$confDir =~ s|/?$|/|;
-$confExtension =~ s|^\.?|\.|;
-
-my @targets = map { $confDir . $_ . $confExtension } @systemList;
-
-foreach my $t (@targets) {
-    die if !-f $t;
-}
-
-my @polvos = map { Polvo->new(Config => $_) } @targets;
-
+1;
 foreach my $polvo (@polvos) {
     foreach my $rep ($polvo->getRepositories()) {
 	chdir $rep;
