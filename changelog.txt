@@ -1,3 +1,7 @@
+Version 0.7.3
+[MOD] polvo-daemon agora funciona num esquema genérico, ele pega o /noe/data/dominios, procura todos os domínios que começam por "teste", procura um conf do polvo la dentro e usa pro polvo. agora estamos livres de vez do /home/nano/source
+[FIX]removendo ".pl" do polvo-daemon, agora q ele eh generico
+
 Version 0.7.2
 [NEW] suporte a svn no polvo-daemon e polvo-publish
 
