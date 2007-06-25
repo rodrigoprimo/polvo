@@ -62,6 +62,28 @@ sub test_refuse_emacs_trash {
 
 }
 
+sub test_refuse_cvs_dirs {
+    my $self = shift;
+
+    system("mkdir /tmp/polvo_test/repository/src/CVS");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->copySource;
+
+    $self->assert(!-d '/tmp/polvo_test/target/CVS', "CVS dirs shouldn't be copied");
+}
+
+sub test_refuse_svn_dirs {
+    my $self = shift;
+
+    system("mkdir /tmp/polvo_test/repository/src/.svn");
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    $polvo->copySource;
+
+    $self->assert(!-d '/tmp/polvo_test/target/.svn', "SVN dirs shouldn't be copied");
+}
+
 sub tear_down {
     system("rm -rf /tmp/polvo_test");
 }

@@ -289,7 +289,7 @@ sub _copyDir {
     closedir DIR;
 
     foreach $item (@items) {
-	$item =~ /^(\.+|.*~|\#.*|CVS)$/ and next;
+	$item =~ /^(\.+|.*~|\#.*|CVS|\.svn)$/ and next;
 
 	if (-f "$source/$item") {
 	    if (!-f "$target/$item") {
