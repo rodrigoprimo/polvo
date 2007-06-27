@@ -179,7 +179,7 @@ sub run {
     $self->copySource();
     $self->applyPatches();
     $self->upgradeDb();
-    $self->runPhp();
+    #$self->runPhp();
     $self->runReplaces();
     $self->runPostCommand();
 
@@ -479,7 +479,9 @@ sub upgradeDb() {
 	my $sqlOld = $sql; 
 	$sqlOld =~ s|^$source|$target/.polvo-db$prefix|;
 
+	print "applying $sql ";
 	if (-f $sqlOld) {
+	    print "(diffing with old version)\n";
 	    open DIFF, "diff -u $sqlOld $sql |";
 	    my @lines;
 	    while (my $line = <DIFF>) {
@@ -491,8 +493,10 @@ sub upgradeDb() {
 	    print DB join('', grep(/^[^-]/, @lines));
 	    close DB;
 	} else {
+	    print "(full file)\n";
 	    system("$cmd < $sql");
 	}
+
     }
 
     system("rm -rf $target/.polvo-db" . $prefix);
@@ -508,6 +512,7 @@ sub upgradeDb() {
 
 Looks for a php/ dir in source dir, finds every .php file and runs it relative to target.
 All files are run only once.
+NOTE: This is not run by default in run(), because can be a security flaw
 
 =cut
 
