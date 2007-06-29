@@ -112,7 +112,8 @@ sub test_run {
     my ($result) = $self->{DBH}->selectrow_array("select count(*) from polvo_test2 where nome = 'nome'");
     $self->assert($result == 1, 'did not insert value into polvo_test2');
 
-    $self->assert(-f '/tmp/polvo_test/php_works', "didn't run test.php");
+    # Disabled for security
+    # $self->assert(-f '/tmp/polvo_test/php_works', "didn't run test.php");
 }
 
 sub tear_down {

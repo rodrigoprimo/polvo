@@ -264,6 +264,23 @@ Looks for a src/ dir in source dir and copies its contents over target dir.
 sub copySource {
     my $self = shift;
 
+    # Hash containing source and fingerprint of files copied last run
+    $self->{COPYSTATUS} = $self->_loadFilesStatus;
+
+    # Array to keep track of current copies, to be used by next run
+    $self->{COPYTRACK} = [];
+
+    $self->_copySourceMulti;
+
+    $self->_deleteFiles;
+
+    $self->_saveFilesStatus;
+}
+
+# This do the copy of each repository
+sub _copySourceMulti {
+    my $self = shift;
+
     $self->{REPOSITORY} or
 	return $self->_multiCall();
     
@@ -271,16 +288,19 @@ sub copySource {
     
     -d $source
 	or return 1;
-    
+
     $self->_copyDir($source, $self->{TARGET});
 }
 
+# Recursively copy each directory
 sub _copyDir {
     my $self = shift;
     my $source = shift;
     my $target = shift;
 
     my (@items, $item);
+
+    my $prefix = $self->{PREFIX} || '';
 
     opendir DIR, $source
 	or die $!;
@@ -292,21 +312,132 @@ sub _copyDir {
 	$item =~ /^(\.+|.*~|\#.*|CVS|\.svn)$/ and next;
 
 	if (-f "$source/$item") {
-	    if (!-f "$target/$item") {
-		system("cp -a $source/$item $target/$item");
-	    } else {
-		my @modeSource = stat "$source/$item";
-		my @modeTarget = stat "$target/$item";
-		if ($modeSource[9] != $modeTarget[9]) { #mtime
-		    system("cp -a $source/$item $target/$item");
-		}
-	    }
+	    $self->_safeCopyFile("$source", "$target", $item);
 	} elsif (-d "$source/$item") {
 	    -d "$target/$item"
 		or mkdir "$target/$item", 02775;
 	    $self->_copyDir("$source/$item", "$target/$item");
 	}
     }
+}
+
+sub _safeCopyFile {
+    my $self = shift;
+    my $source = shift;
+    my $target = shift;
+    my $file = shift;
+
+    if (!-f "$target/$file") {
+	print "copying $source/$file -> $target/$file\n";
+	system("cp -a $source/$file $target/$file");
+    } else {
+	-f "$source/$file" or die "$source/$file don't exist or is not file";
+
+	$self->_getMTime("$source/$file") != $self->_getMTime("$target/$file")
+	    or return $self->_trackFile($target, $source, $file);
+	
+	my $targetPrint = $self->_getFingerpring("$target/$file");
+	my $status = $self->{COPYSTATUS}{$file};
+	if (!ref($status)) {
+	    print "$target/$file created on target, skipping\n";
+	    return;
+	} elsif ($status->{'md5'} != $targetPrint) {
+	    print "$target/$file modified modified on target, skipping\n";
+	    return $self->_trackFile($target, $source, $file, $targetPrint);
+	}
+	
+	print "copying $source/$file -> $target/$file\n";
+	system("cp -a $source/$file $target/$file");
+    }
+    
+    return $self->_trackFile($target, $source, $file);
+}
+
+sub _trackFile {
+    my $self = shift;
+    my $target = shift;
+    my $source = shift;
+    my $file = shift;
+    my $fingerprint = shift || $self->_getFingerprint("$target/$file");
+
+    my $targetRoot = $self->{TARGET};
+    $target =~ s|^$targetRoot/*||;
+
+    my $sourceRoot = $self->{REPOSITORY};
+    $source =~ s|^$sourceRoot/*||;
+
+    push @{$self->{COPYTRACK}}, ["$target/$file", "$source/$file", $fingerprint];    
+}
+
+sub _loadFilesStatus {
+    my $self = shift;
+
+    my $target = $self->{TARGET};
+
+    -f "$target/.polvo-src" or return {};
+
+    open ARQ, "$target/.polvo-src" or return {};
+
+    my %files;
+    while (my $line = <ARQ>) {
+	my ($targetFile, $sourceFile, $fingerprint) = split /\s+/, $line;
+	$files{$targetFile} = { 'md5' => $fingerprint, 'source' => $sourceFile };
+    }
+
+    close ARQ;
+
+    return \%files;    
+}
+
+sub _deleteFiles {
+    my $self = shift;
+
+    my $target = $self->{TARGET};
+
+    foreach my $file (@{$self->{COPYTRACK}}) {
+	my ($targetFile, $sourceFile) = @$file;
+	delete $self->{COPYSTATUS}{$targetFile};
+    }
+
+    foreach my $file (keys %{$self->{COPYSTATUS}}) {
+	unlink "$target/$file";
+    }
+}
+
+sub _saveFilesStatus {
+    my $self = shift;
+
+    my $target = $self->{TARGET};
+
+    open ARQ, ">$target/.polvo-src"
+	or die $!;
+
+    foreach my $file (@{$self->{COPYTRACK}}) {
+	print ARQ join(" ", @$file), "\n";
+    }
+
+    close ARQ;
+}
+
+sub _getFingerprint {
+    my $self = shift;
+    my $file = shift;
+
+    -f $file or die "$file is not file";
+
+    open ARQ, $file or die $!;
+    my $contents = join '', <ARQ>;
+    close ARQ;
+
+    return MD5->hexhash($contents);    
+}
+
+sub _getMTime {
+    my $self = shift;
+    my $file = shift;
+
+    my @stat = stat $file;
+    return $stat[9];
 }
 
 =pod

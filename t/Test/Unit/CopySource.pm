@@ -31,7 +31,6 @@ sub set_up {
 }
 
 sub test_copy {
-    
     my $self = shift;
 
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
@@ -47,6 +46,43 @@ sub test_copy {
     $self->assert(length($diff1) == 0, "files are not equal");
     $self->assert(length($diff2) == 0, "file are not equal");
 }
+
+sub test_do_not_override_target_modifications {
+    my $self = shift;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    
+    $polvo->copySource;
+
+    # run again, to garantee that second run won't forget to save md5 hashes
+
+    open ARQ, ">>/tmp/polvo_test/target/dir1/file1";
+    print ARQ "\nmodified on target\n";
+    close ARQ;
+
+    $polvo->copySource;
+    my $modif = `grep modified /tmp/polvo_test/target/dir1/file1`;
+    $self->assert($modif !~ /^\s*$/, "target modifications were overriden");
+
+    # repeat, because one run may override fingerprint information of last run
+    $polvo->copySource;
+    my $modif = `grep modified /tmp/polvo_test/target/dir1/file1`;
+    $self->assert($modif !~ /^\s*$/, "target modifications were overriden on second run");
+}
+
+sub test_delete_file {
+    my $self = shift;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+    
+    $polvo->copySource;
+
+    unlink '/tmp/polvo_test/repository/src/file2';
+
+    $polvo->copySource;
+
+    $self->assert(!-f '/tmp/polvo_test/target/file2', "deletion on repository didn't delete on target");
+}    
 
 sub test_refuse_emacs_trash {
     my $self = shift;
