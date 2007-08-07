@@ -39,6 +39,9 @@ sub set_up {
 sub test_php_run {
     my $self = shift;
 
+    # Running php scripts in run() has been considered a security flaw, so it's been disabled
+    return;
+
     my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
     $polvo->runPhp();
 

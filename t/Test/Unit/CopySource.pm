@@ -54,7 +54,8 @@ sub test_do_not_override_target_modifications {
     
     $polvo->copySource;
 
-    # run again, to garantee that second run won't forget to save md5 hashes
+    #make sure we file's mtime is changed
+    sleep 1;
 
     open ARQ, ">>/tmp/polvo_test/target/dir1/file1";
     print ARQ "\nmodified on target\n";

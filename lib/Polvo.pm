@@ -264,23 +264,6 @@ Looks for a src/ dir in source dir and copies its contents over target dir.
 sub copySource {
     my $self = shift;
 
-    # Hash containing source and fingerprint of files copied last run
-    $self->{COPYSTATUS} = $self->_loadFilesStatus;
-
-    # Array to keep track of current copies, to be used by next run
-    $self->{COPYTRACK} = [];
-
-    $self->_copySourceMulti;
-
-    $self->_deleteFiles;
-
-    $self->_saveFilesStatus;
-}
-
-# This do the copy of each repository
-sub _copySourceMulti {
-    my $self = shift;
-
     $self->{REPOSITORY} or
 	return $self->_multiCall();
     
@@ -321,38 +304,38 @@ sub _copyDir {
     }
 }
 
+# Copy file from target to repository, avoiding files not changed and avoiding override changes
+# at target (not working yet)
 sub _safeCopyFile {
     my $self = shift;
     my $source = shift;
     my $target = shift;
     my $file = shift;
 
-    if (!-f "$target/$file") {
-	print "copying $source/$file -> $target/$file\n";
-	system("cp -a $source/$file $target/$file");
-    } else {
-	-f "$source/$file" or die "$source/$file don't exist or is not file";
+    # TODO if file was modified at target, print big warning and do not copy
+    -f "$source/$file" or die "$source/$file don't exist or is not file";
 
-	$self->_getMTime("$source/$file") != $self->_getMTime("$target/$file")
-	    or return $self->_trackFile($target, $source, $file);
-	
-	my $targetPrint = $self->_getFingerpring("$target/$file");
-	my $status = $self->{COPYSTATUS}{$file};
-	if (!ref($status)) {
-	    print "$target/$file created on target, skipping\n";
-	    return;
-	} elsif ($status->{'md5'} != $targetPrint) {
-	    print "$target/$file modified modified on target, skipping\n";
-	    return $self->_trackFile($target, $source, $file, $targetPrint);
-	}
-	
+    if ($self->_getMTime("$source/$file") != $self->_getMTime("$target/$file")) {
 	print "copying $source/$file -> $target/$file\n";
 	system("cp -a $source/$file $target/$file");
     }
-    
-    return $self->_trackFile($target, $source, $file);
 }
 
+# Get file's modification time
+sub _getMTime {
+    my $self = shift;
+    my $file = shift;
+
+    my @stat = stat $file;
+    return $stat[9];
+}
+
+##
+#
+# Methods below are related to tracking fingerprint of all files, so that we can avoid overring changes
+# at target and delete from target files removed from repository
+# They're not being used right now, and _safeCopyFile
+#
 sub _trackFile {
     my $self = shift;
     my $target = shift;
@@ -430,14 +413,6 @@ sub _getFingerprint {
     close ARQ;
 
     return MD5->hexhash($contents);    
-}
-
-sub _getMTime {
-    my $self = shift;
-    my $file = shift;
-
-    my @stat = stat $file;
-    return $stat[9];
 }
 
 =pod
@@ -660,7 +635,7 @@ sub runPhp() {
     -d $source
 	or return 1;
 
-    my $cmd = $self->{CONFIG}{phpcmd} || 'php-cgi';
+    my $cmd = $self->{CONFIG}{phpcmd} || 'php';
 
     my @phps;
 
