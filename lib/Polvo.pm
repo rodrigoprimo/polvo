@@ -452,10 +452,12 @@ sub applyPatches {
 	}
     }
 
-    system("rm -rf $target");
-    system("mkdir -p " . $self->{TARGET} . "/.polvo-patches")
-	if $prefix;
-    system("cp -r $source $target");
+    if (-d $source) {
+	system("rm -rf $target");
+	system("mkdir -p " . $self->{TARGET} . "/.polvo-patches")
+	    if $prefix;
+	system("cp -r $source $target");
+    }
 }
 
 =pod
