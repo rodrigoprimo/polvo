@@ -245,13 +245,61 @@ sub _multiCallReverse {
     return $result;
 }
 
-sub _startOutputBuffer {
+# Test if there's permission to create .polvo-* files/dirs, or if they exist and are editable
+sub _testPermission {
     my $self = shift;
+    my $dir = shift;
 
-    $self->{OUTPUT} = '';
+    my $target = $self->{TARGET} . $dir;
 
-    
+    # Dir does not exist, but can be created, ok
+    if (!-e $target && -w $self->{TARGET}) {
+	return 1;
+    }
+
+    # If it exists, recursively tests if we have permission over everything
+    if (-e $target) {
+	return $self->_recursiveTestPermission($target);
+    }
+
+    return 0;
 }
+
+# Recursively tests permission of file/dir
+sub _recursiveTestPermission {
+    my $self = shift;
+    my $file = shift;
+    my $depth = shift || 0;
+
+    $depth++;
+
+    if ($depth > 100) {
+	# Something is wrong, symlink to same dir or stuff like that.
+	# We hope no one will have such a deep structure...
+	return 1;
+    }
+
+    if (-f $file) {
+	return -w $file;
+    } elsif (-d $file) {
+	-w $file
+	    or return 0;
+	my (@files, $file);
+	opendir DIR, $file;
+	push @files, $file while $file = readdir DIR;
+	closedir DIR;
+	foreach $file (@files) {
+	    $self->_recursiveTestPermission($file, $depth)
+		or return 0;
+	}
+	return 1;
+    } else {
+	# Not file, not dir, we don't need permission
+	# Wonder if we will ever get problems with symlinks
+	return 1;
+    }
+}
+
 
 =pod
 
@@ -437,6 +485,11 @@ sub applyPatches {
 
     my $source = $self->{REPOSITORY}.'/patch';
     my $target = $self->{TARGET}."/.polvo-patches" . $prefix;
+
+    if (!$self->_testPermission('.polvo-patches' . $prefix)) {
+	warn "Don't have full permission on $target, or can't create it!";
+	return undef;
+    }
     
     if (-d $target) {
 	my $cmd = "diff -r -x CVS $target $source |grep -v 'Only in $source'";

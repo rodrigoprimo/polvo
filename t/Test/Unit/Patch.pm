@@ -227,6 +227,26 @@ sub test_remove_patch {
     $self->assert(length($diff) == 0, "patches were not unapplied");
 }
 
+sub test_dont_patch_without_write_permission {
+    my $self = shift;
+
+    my $polvo = Polvo->new(Config => '/tmp/polvo_test/test.conf');
+
+    $self->assert(!-d "/tmp/polvo_test/target/.polvo-patches", "can't test because .polvo-patches is already there!");
+    
+    # Remove write permission
+    chmod 0555, '/tmp/polvo_test/target';
+
+    $polvo->applyPatches();
+
+    chmod 0755, '/tmp/polvo_test/target';
+
+    my $diff = `diff /tmp/polvo_test/target/dir1/file1 /tmp/polvo_test/target_new/dir1/file1`;
+
+    $self->assert(length($diff) > 0, "File was patched, but there's no permission to create .polvo-patches");
+    
+}
+
 sub _fix_patches {
     system("find /tmp/polvo_test/repository/patch -name '*.patch' -exec perl -pi -e 's|^--- \\.\\./target(_new2?)?/|--- ./|' {} \\;");
     system("find /tmp/polvo_test/repository/patch -name '*.patch' -exec perl -pi -e 's|^\\+\\+\\+ \\.\\./target(_new2?)?/|+++ ./|' {} \\;");
