@@ -365,7 +365,7 @@ sub _safeCopyFile {
 
     if ($self->_getMTime("$source/$file") != $self->_getMTime("$target/$file")) {
 	print "copying $source/$file -> $target/$file\n";
-	system("cp -a $source/$file $target/$file");
+	system("cp -p $source/$file $target/$file");
     }
 }
 
