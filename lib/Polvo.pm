@@ -170,11 +170,11 @@ sub run {
     my $self = shift;
 
     if ($#{$self->{REPOSITORIES}} > 0) {
-	# this is bad, unapplying and reapplying all patches everytime,
-	# but by now it's the simplest way to avoid copySource to override
-	# patched files.
-	# TODO: only copy updated files and only unpatch if necessary
-	$self->unapplyPatches();
+		# this is bad, unapplying and reapplying all patches everytime,
+		# but by now it's the simplest way to avoid copySource to override
+		# patched files.
+		# TODO: only copy updated files and only unpatch if necessary
+		$self->unapplyPatches();
     }
     $self->copySource();
     $self->applyPatches();
@@ -184,6 +184,74 @@ sub run {
     $self->runPostCommand();
 
     1;
+}
+
+=pod
+
+=item runTests()
+
+Run unit tests defined at unit_tests directory on the repository
+
+=cut
+
+sub runTests {
+	my $self = shift;
+	
+	my $configFile = $self->{CONFIGFILE};
+	
+	my $targetOriginal = $self->{TARGET};
+	
+	$configFile =~ s/\.conf//g;
+	$self->{TARGET} = "/tmp/polvo-tests-$configFile/src";
+	$self->copySource();
+
+	$self->{TARGET} = "/tmp/polvo-tests-$configFile/unit_test";
+	$self->copyTests();
+	$self->execTests();
+	
+	$self->{TARGET} = $targetOriginal;
+}
+
+=pod
+
+=item copyTests()
+
+Copy all tests in the directory unit_tests
+
+=cut
+
+sub copyTests {
+    my $self = shift;
+
+    $self->{REPOSITORY} or
+		return $self->_multiCall();
+    
+    my $source = $self->{REPOSITORY}.'/unit_tests';
+    
+    -d $source
+		or return 1;
+
+    $self->_copyDir($source, $self->{TARGET});
+}
+
+=pod 
+
+=item execTests()
+
+Executes all tests defined
+
+=cut
+
+sub execTests {
+	my $self = shift;
+	my @files;
+	foreach my $i (0..$#{$self->{REPOSITORIES}}) {
+		-d $self->{REPOSITORIES}[$i] or
+	    	die $self->{REPOSITORIES}[$i]." is not a directory";
+		$self->{REPOSITORIES}[$i] =~ s|/?$||;
+		my @aux = `find $self->{REPOSITORIES}[$i]/unit_test -name \*Test.php`;
+		push @files, @aux;
+	}
 }
 
 # sets $self->{REPOSITORY} for each source repository and calls
@@ -313,12 +381,12 @@ sub copySource {
     my $self = shift;
 
     $self->{REPOSITORY} or
-	return $self->_multiCall();
+		return $self->_multiCall();
     
     my $source = $self->{REPOSITORY}.'/src';
     
     -d $source
-	or return 1;
+		or return 1;
 
     $self->_copyDir($source, $self->{TARGET});
 }
@@ -334,21 +402,21 @@ sub _copyDir {
     my $prefix = $self->{PREFIX} || '';
 
     opendir DIR, $source
-	or die $!;
+		or die $!;
     push @items, $item
 	while $item = readdir DIR;
     closedir DIR;
 
     foreach $item (@items) {
-	$item =~ /^(\.+|.*~|\#.*|CVS|\.svn)$/ and next;
+		$item =~ /^(\.+|.*~|\#.*|CVS|\.svn)$/ and next;
 
-	if (-f "$source/$item") {
-	    $self->_safeCopyFile("$source", "$target", $item);
-	} elsif (-d "$source/$item") {
-	    -d "$target/$item"
-		or mkdir "$target/$item", 02775;
-	    $self->_copyDir("$source/$item", "$target/$item");
-	}
+		if (-f "$source/$item") {
+	    	$self->_safeCopyFile("$source", "$target", $item);
+		} elsif (-d "$source/$item") {
+	    	-d "$target/$item"
+				or mkdir "$target/$item", 02775;
+	    	$self->_copyDir("$source/$item", "$target/$item");
+		}
     }
 }
 
