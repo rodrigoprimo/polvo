@@ -408,7 +408,7 @@ sub _copyDir {
     closedir DIR;
 
     foreach $item (@items) {
-		$item =~ /^(\.+|.*~|\#.*|CVS|\.svn)$/ and next;
+		$item =~ /^(\.+|.*~|\#.*|CVS|\.svn|\.git)$/ and next;
 
 		if (-f "$source/$item") {
 	    	$self->_safeCopyFile("$source", "$target", $item);
