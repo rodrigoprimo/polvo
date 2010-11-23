@@ -12,3 +12,4 @@ fail safe, in case you have wrong db configuration, patch command not in path an
 polvo will fail its routines and next time it runs the modifications will be noted as done. So,
 make backups.
 
+For more information see http://estudiolivre.org/polvo (only in Portuguese)
