@@ -5,7 +5,7 @@ use strict;
 our $VERSION = '0.1';
 
 use XML::Simple;
-use MD5;
+use Digest::MD5;
 
 #use Polvo::OutputBuffer;
 
@@ -528,7 +528,7 @@ sub _getFingerprint {
     my $contents = join '', <ARQ>;
     close ARQ;
 
-    return MD5->hexhash($contents);    
+    return Digest::MD5->hexhash($contents);    
 }
 
 =pod
@@ -777,7 +777,7 @@ sub runPhp() {
 	if (!-f $phpOld) {
 	    my $phpNew;
 	    while (!$phpNew || -f "$target/$phpNew") {
-		$phpNew = MD5->hexhash(rand()) . '.php';
+		$phpNew = Digest::MD5->hexhash(rand()) . '.php';
 	    }
 	    chdir $target;
 	    system("cp $php $phpNew");
