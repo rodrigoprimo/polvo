@@ -12,4 +12,15 @@ fail safe, in case you have wrong db configuration, patch command not in path an
 polvo will fail its routines and next time it runs the modifications will be noted as done. So,
 make backups.
 
+Install instructions:
+
+$ sudo apt-get install libxml-perl libdigest-md5-file-perl libxml-simple-perl
+$ cd /home/fulano/devel
+$ git clone git://github.com/rodrigoprimo/polvo.git
+$ perl Makefile.PL
+$ make
+$ sudo make install
+$ chmod a+x polvo.pl
+
 For more information see http://estudiolivre.org/polvo (only in Portuguese)
+
